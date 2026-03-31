@@ -40,11 +40,17 @@ public:
   int createHashCode(const wstring &str);
 
   /**
-   * @brief Проверить наличие строки в словаре по хэш-коду
-   * @param key хэш-код проверяемой строки
+   * @brief Получить копию хэш-таблицы словаря
+   * @return хэш-таблицу словаря
+   */
+  vector<unordered_map<int, wstring>> getVocabHashTable();
+
+  /**
+   * @brief Проверить наличие строки в словаре
+   * @param str ссылка на строку
    * @return true, если строка есть в словаре, иначе false
    */
-  bool isInVocab(int key);
+  bool isInVocab(const wstring &str);
 
 private:
   vector<unordered_map<int, wstring>>

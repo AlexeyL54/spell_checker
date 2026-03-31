@@ -3,17 +3,18 @@
 #include <cstddef>
 #include <cstdio>
 #include <cwchar>
-#include <exception>
 #include <fstream>
 #include <math.h>
 #include <string>
-#include <vector>
 
 using std::getline;
 using std::ifstream;
 using std::pow;
-using std::vector;
 using std::wstring;
+
+// TODO: Vocabulary::vocab_hash_table.resize(кол-во длин строк в файле)
+// TODO: индекс Vocabulary::vocab_hash_table = длина строки - 1
+// TODO: переписать с wstring на string или свой тип для utf8
 
 /**
  * @brief Конструктор
@@ -30,13 +31,17 @@ Vocabulary::Vocabulary(const string &path)
  * @param file ссылка на потокoк
  * @return количество строк в файле
  */
-size_t rowsTotal(ifstream &file) {
+size_t Vocabulary::rowsTotal(ifstream &file) {
   size_t rows = 0;
   string line;
 
   while (getline(file, line)) {
     rows++;
   }
+
+  file.clear();
+  file.seekg(0, std::ios::beg);
+
   return rows;
 }
 
@@ -45,7 +50,7 @@ size_t rowsTotal(ifstream &file) {
  * @param str ссылка на конвертируемую строку
  * @return строку типа wstring
  */
-std::wstring stringToWstring(const std::string &str) {
+std::wstring Vocabulary::stringToWstring(const std::string &str) {
   size_t len = str.length();
   std::wstring wstr(len, L'\0');
   std::mbstowcs(&wstr[0], str.c_str(), len);
@@ -95,18 +100,29 @@ int Vocabulary::createHashCode(const wstring &str) {
 }
 
 /**
+ * @brief Получить копию хэш-таблицы словаря
+ * @return хэш-таблицу словаря
+ */
+vector<unordered_map<int, wstring>> Vocabulary::getVocabHashTable() {
+  return Vocabulary::vocab_hash_table;
+}
+
+/**
  * @brief Проверить наличие строки в словаре по хэш-коду
  * @param key хэш-код проверяемой строки
  * @return true, если строка есть в словаре, иначе false
  */
-bool Vocabulary::isInVocab(int key) {
-  bool found = false;
+bool Vocabulary::isInVocab(const wstring &str) {
+  int key = createHashCode(str);
+  size_t index = str.length();
 
-  try {
-    auto str = Vocabulary::vocab_hash_table.at(key);
+  if (index < Vocabulary::vocab_hash_table.size()) {
 
-  } catch (const std::exception &e) {
-    found = false;
+    if (Vocabulary::vocab_hash_table[index].find(key) !=
+        Vocabulary::vocab_hash_table[index].end()) {
+      return true;
+    }
   }
-  return found;
+
+  return false;
 }
