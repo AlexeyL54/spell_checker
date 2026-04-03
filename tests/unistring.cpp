@@ -7,9 +7,18 @@ using utf8::Unistring;
 
 TEST(UNISTRING, assignment) {
   Unistring str1("abc");
-  Unistring str2 = str1;
+  string str2 = "abc";
+  const char *str3 = "abc";
 
-  EXPECT_EQ(str1, str2);
+  Unistring str_1 = str1;
+  Unistring str_2 = str2;
+  Unistring str_3 = str3;
+  Unistring str_4 = "abc";
+
+  EXPECT_EQ(str_1, str1);
+  EXPECT_EQ(str_2, str2);
+  EXPECT_EQ(str_3, str2);
+  EXPECT_EQ(str_4, "abc");
 }
 
 TEST(UNISTRING, indexing) {
@@ -49,4 +58,23 @@ TEST(UNISTRING, equality) {
   EXPECT_EQ((str5 == str7), false);
   EXPECT_EQ((str5 == str3), false);
   EXPECT_EQ((str5 == str4), false);
+}
+
+TEST(UNISTRING, length) {
+  Unistring str1 = "Рус";
+  Unistring str2 = "Рус!";
+  Unistring str3 = "Eng";
+  Unistring str4 = "Eng!";
+
+  EXPECT_EQ(str1.length(), 3);
+  EXPECT_EQ(str2.length(), 4);
+  EXPECT_EQ(str3.length(), 3);
+  EXPECT_EQ(str4.length(), 4);
+}
+
+TEST(UNISTRING, to_lower) {
+  Unistring str_h = "Рус";
+  Unistring str_l = "рус";
+
+  EXPECT_EQ(str_h.to_lower(), str_l);
 }

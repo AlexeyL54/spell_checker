@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -19,29 +20,23 @@ public:
 
   string to_string() const;
 
-  Unistring to_unistring(const string); // TODO:
+  Unistring to_lower();
 
-  Unistring to_unistring(const char *); // TODO:
-
-  size_t length(); // TODO:
+  size_t length();
 
   vector<Unistring> split(const Unistring &); // TODO:
 
-  Unistring &operator=(const Unistring &right); // TODO:
+  size_t find(const Unistring &substr, const Unistring &str); // TODO:
 
-  Unistring &operator=(const string &right); // TODO:
+  Unistring &operator=(const Unistring &right);
 
-  Unistring &operator=(const char *right); // TODO:
+  Unistring &operator=(const string &right);
+
+  Unistring &operator=(const char *right);
 
   Unistring operator[](size_t);
 
 private:
-  bool is_utf8_cyrillic_start(unsigned char c);
-  bool is_cyrillic_char(const string &c);
-  string to_lower_cyrillic(const string &c);
-  bool is_whitespace_utf8(const string &s);
-  bool is_punctuation_utf8(const string &s);
-  vector<string> utf8_split(const string &s); // дубляж
 };
 
 bool operator==(const Unistring &, const Unistring &);
