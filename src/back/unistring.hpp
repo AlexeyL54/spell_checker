@@ -7,6 +7,8 @@
 using std::string;
 using std::vector;
 
+// TODO: поддержка 3 и 4 байтовых символов
+
 namespace utf8 {
 
 class Unistring {
@@ -14,6 +16,11 @@ private:
   string value;
 
 public:
+  /**
+   * @brief Конструктор
+   */
+  Unistring();
+
   /**
    * @brief Конструктор
    * @param str строка
@@ -39,7 +46,7 @@ public:
   /**
    * @brief Определить длину строки
    */
-  size_t length();
+  size_t length() const;
 
   /**
    * @brief Разбить строку на вектор подстрок по разделителю
@@ -62,7 +69,9 @@ public:
 
   Unistring &operator=(const char *right);
 
-  Unistring operator[](size_t);
+  Unistring operator[](size_t) const;
+
+  Unistring operator[](int) const;
 
 private:
 };
@@ -70,4 +79,12 @@ private:
 bool operator==(const Unistring &, const Unistring &);
 bool operator==(const Unistring &, const string &);
 bool operator==(const Unistring &, const char *);
+
+/*
+ * @brief Конвертировать символ строки Unistring в int
+ * @param ch символ
+ * @return код типа int
+ */
+int unichar_to_int(const Unistring &ch);
+
 } // namespace utf8

@@ -1,4 +1,6 @@
 #include "vocab.hpp"
+#include "unistring.hpp"
+#include <climits>
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
@@ -11,6 +13,7 @@ using std::getline;
 using std::ifstream;
 using std::pow;
 using std::wstring;
+using utf8::Unistring;
 
 // TODO: Vocabulary::vocab_hash_table.resize(кол-во длин строк в файле)
 // TODO: индекс Vocabulary::vocab_hash_table = длина строки - 1
@@ -24,7 +27,7 @@ using std::wstring;
  * размер алфавита словаря и проверяемого текста
  */
 Vocabulary::Vocabulary(const string &path)
-    : vocab_path(path), alphabet_size(WCHAR_MAX) {}
+    : vocab_path(path), alphabet_size(INT_MAX) {}
 
 /**
  * @brief Вычислить количество строк в файле
@@ -46,23 +49,11 @@ size_t Vocabulary::rowsTotal(ifstream &file) {
 }
 
 /**
- * @brief Конвертировать string в wstring
- * @param str ссылка на конвертируемую строку
- * @return строку типа wstring
- */
-std::wstring Vocabulary::stringToWstring(const std::string &str) {
-  size_t len = str.length();
-  std::wstring wstr(len, L'\0');
-  std::mbstowcs(&wstr[0], str.c_str(), len);
-  return wstr;
-}
-
-/**
  * @brief Загрузить словарь и представить его в виде хэш-таблицы
  */
 void Vocabulary::loadVocab() {
   string line;
-  wstring wline;
+  Unistring uline;
   int wline_hash;
 
   ifstream file(vocab_path);
@@ -71,13 +62,13 @@ void Vocabulary::loadVocab() {
     return;
   }
 
-  size_t lines_total = Vocabulary::rowsTotal(file);
-  Vocabulary::vocab_hash_table.resize(lines_total);
+  size_t dif_len_total = Vocabulary::rowsTotal(file);
+  Vocabulary::vocab_hash_table.resize(dif_len_total);
 
   while (getline(file, line)) {
-    wline = stringToWstring(line);
-    wline_hash = createHashCode(wline);
-    Vocabulary::vocab_hash_table[wline.length()][wline_hash] = wline;
+    uline = line;
+    wline_hash = createHashCode(uline);
+    Vocabulary::vocab_hash_table[uline.length()][wline_hash] = uline;
   }
 
   file.close();
@@ -88,12 +79,12 @@ void Vocabulary::loadVocab() {
  * @param str ссылка на строку
  * @return хэш код
  */
-int Vocabulary::createHashCode(const wstring &str) {
+int Vocabulary::createHashCode(const Unistring &str) {
   int code = 0;
   int length = str.length();
 
   for (int i = 0; i < length; i++) {
-    code += pow(alphabet_size, length - (i + 1)) * ((int)str[i]);
+    code += pow(alphabet_size, length - (i + 1)) * unichar_to_int(str[i]);
   }
 
   return code;
@@ -103,7 +94,7 @@ int Vocabulary::createHashCode(const wstring &str) {
  * @brief Получить копию хэш-таблицы словаря
  * @return хэш-таблицу словаря
  */
-vector<unordered_map<int, wstring>> Vocabulary::getVocabHashTable() {
+vector<unordered_map<int, Unistring>> Vocabulary::getVocabHashTable() {
   return Vocabulary::vocab_hash_table;
 }
 
@@ -112,7 +103,7 @@ vector<unordered_map<int, wstring>> Vocabulary::getVocabHashTable() {
  * @param key хэш-код проверяемой строки
  * @return true, если строка есть в словаре, иначе false
  */
-bool Vocabulary::isInVocab(const wstring &str) {
+bool Vocabulary::isInVocab(const Unistring &str) {
   int key = createHashCode(str);
   size_t index = str.length();
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "unistring.hpp"
 #include <cstddef>
 #include <fstream>
 #include <memory>
@@ -13,7 +14,7 @@ using std::shared_ptr;
 using std::string;
 using std::unordered_map;
 using std::vector;
-using std::wstring;
+using utf8::Unistring;
 
 class Vocabulary {
 
@@ -37,23 +38,23 @@ public:
    * @param str ссылка на строку
    * @return хэш код
    */
-  int createHashCode(const wstring &str);
+  int createHashCode(const Unistring &str);
 
   /**
    * @brief Получить копию хэш-таблицы словаря
    * @return хэш-таблицу словаря
    */
-  vector<unordered_map<int, wstring>> getVocabHashTable();
+  vector<unordered_map<int, Unistring>> getVocabHashTable();
 
   /**
    * @brief Проверить наличие строки в словаре
    * @param str ссылка на строку
    * @return true, если строка есть в словаре, иначе false
    */
-  bool isInVocab(const wstring &str);
+  bool isInVocab(const Unistring &str);
 
 private:
-  vector<unordered_map<int, wstring>>
+  vector<unordered_map<int, Unistring>>
       vocab_hash_table;    // хэш-таблица строк словаря
   const string vocab_path; // путь к файлу словаря
   const int alphabet_size; // размер алфавита проверяемого текста и словаря
@@ -64,11 +65,4 @@ private:
    * @return количество строк в файле
    */
   size_t rowsTotal(ifstream &file);
-
-  /**
-   * @brief Конвертировать string в wstring
-   * @param str ссылка на конвертируемую строку
-   * @return строку типа wstring
-   */
-  wstring stringToWstring(const string &str);
 };

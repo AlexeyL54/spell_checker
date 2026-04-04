@@ -8,6 +8,8 @@ using std::string;
 
 using utf8::Unistring;
 
+Unistring::Unistring() {};
+
 Unistring::Unistring(const string s) : value(s) {};
 
 Unistring::Unistring(const char *s) : value(s) {};
@@ -32,7 +34,7 @@ Unistring &Unistring::operator=(const char *right) {
   return *this;
 }
 
-Unistring Unistring::operator[](size_t index) {
+Unistring Unistring::operator[](size_t index) const {
   string symbol;
   int8_t bytes_to_decode_symbol;
   unsigned char first_byte = static_cast<unsigned char>(value[0]);
@@ -48,7 +50,23 @@ Unistring Unistring::operator[](size_t index) {
   return Unistring(symbol);
 }
 
-size_t Unistring::length() {
+Unistring Unistring::operator[](int index) const {
+  string symbol;
+  int8_t bytes_to_decode_symbol;
+  unsigned char first_byte = static_cast<unsigned char>(value[0]);
+
+  if (first_byte == 0xD0 or first_byte == 0xD1) {
+    bytes_to_decode_symbol = 2;
+    index *= bytes_to_decode_symbol;
+    symbol.push_back(value[index]);
+    symbol.push_back(value[index + 1]);
+  } else {
+    symbol = value[index];
+  }
+  return Unistring(symbol);
+}
+
+size_t Unistring::length() const {
   size_t len = 0;
   int8_t bytes_to_decode_symbol;
   unsigned char first_byte_of_symbol;
@@ -127,4 +145,21 @@ bool utf8::operator==(const Unistring &s1, const string &s2) {
 
 bool utf8::operator==(const Unistring &s1, const char *s2) {
   return s1.to_string() == s2;
+}
+
+/*
+ * @brief Конвертировать символ строки Unistring в int
+ * @param ch символ
+ * @return код типа int, -1 в случае если ch является подстрокой
+ */
+int utf8::unichar_to_int(const Unistring &ch) {
+  if (ch.length() > 1) {
+    return -1;
+  }
+
+  unsigned char first_byte = ch.to_string()[0];
+  unsigned char second_byte = ch.to_string()[1];
+  int code = (first_byte << 8) | second_byte;
+
+  return code;
 }

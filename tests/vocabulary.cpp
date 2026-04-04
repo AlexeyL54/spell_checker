@@ -1,4 +1,6 @@
+#include "../src/back/unistring.hpp"
 #include "../src/back/vocab.hpp"
+#include <climits>
 #include <cstddef>
 #include <cstdio>
 #include <filesystem>
@@ -12,13 +14,14 @@ using std::endl;
 using std::string;
 using std::wofstream;
 using std::filesystem::remove;
+using utf8::Unistring;
 
 const string test_vocab_path = "test_vocab.txt";
-const vector<wstring> words = {
-    L"привет",     L"мир",      L"программа", L"тестирование", L"словарь",
-    L"русский",    L"язык",     L"проверка",  L"орфография",   L"компьютер",
-    L"разработка", L"алгоритм", L"структура", L"данные",       L"функция",
-    L"переменная", L"класс",    L"объект",    L"метод",        L"наследование",
+const vector<Unistring> words = {
+    "привет",     "мир",      "программа", "тестирование", "словарь",
+    "русский",    "язык",     "проверка",  "орфография",   "компьютер",
+    "разработка", "алгоритм", "структура", "данные",       "функция",
+    "переменная", "класс",    "объект",    "метод",        "наследование",
 };
 
 /**
@@ -26,12 +29,12 @@ const vector<wstring> words = {
  * @param str ссылка на строку
  * @return хэш код
  */
-int createHashCode(const wstring &str) {
+int createHashCode(const Unistring &str) {
   int code = 0;
   int length = str.length();
 
   for (int i = 0; i < length; i++) {
-    code += pow(WCHAR_MAX, length - (i + 1)) * ((int)str[i]);
+    code += pow(INT_MAX, length - (i + 1)) * utf8::unichar_to_int(str[i]);
   }
 
   return code;
@@ -42,12 +45,12 @@ int createHashCode(const wstring &str) {
  * @return хэш-таблицу, гду i-ый элемент вектора - слоаварь, в котором значение
  * - строки с одинаковой длиной равной индексу словаря в векторе
  */
-vector<unordered_map<int, wstring>> createTestHashTable() {
-  vector<unordered_map<int, wstring>> test_hash_table(words.size());
+vector<unordered_map<int, Unistring>> createTestHashTable() {
+  vector<unordered_map<int, Unistring>> test_hash_table(words.size());
   size_t index;
   int key;
 
-  for (wstring str : words) {
+  for (Unistring str : words) {
     index = str.length();
     key = createHashCode(str);
     test_hash_table[index][key] = str;
@@ -63,41 +66,14 @@ vector<unordered_map<int, wstring>> createTestHashTable() {
  */
 void prepareTestVocab() {
   // Используем обычный ofstream в бинарном режиме
-  std::ofstream file(test_vocab_path, std::ios::binary);
+  std::ofstream file(test_vocab_path, std::ios::out);
   if (!file.is_open()) {
     cerr << "Unable to open file: " << test_vocab_path << endl;
     return;
   }
 
-  // Записываем BOM для UTF-8 (опционально, помогает некоторым программам)
-  // const unsigned char bom[] = {0xEF, 0xBB, 0xBF};
-  // file.write(reinterpret_cast<const char*>(bom), sizeof(bom));
-
-  for (const wstring &str : words) {
-    // Конвертируем wstring в UTF-8 вручную
-    std::string utf8_str;
-    for (wchar_t ch : str) {
-      if (ch < 0x80) {
-        // ASCII символы
-        utf8_str += static_cast<char>(ch);
-      } else if (ch < 0x800) {
-        // 2-байтовые UTF-8 символы
-        utf8_str += static_cast<char>(0xC0 | (ch >> 6));
-        utf8_str += static_cast<char>(0x80 | (ch & 0x3F));
-      } else if (ch < 0x10000) {
-        // 3-байтовые UTF-8 символы
-        utf8_str += static_cast<char>(0xE0 | (ch >> 12));
-        utf8_str += static_cast<char>(0x80 | ((ch >> 6) & 0x3F));
-        utf8_str += static_cast<char>(0x80 | (ch & 0x3F));
-      } else {
-        // 4-байтовые UTF-8 символы (для суррогатных пар)
-        utf8_str += static_cast<char>(0xF0 | (ch >> 18));
-        utf8_str += static_cast<char>(0x80 | ((ch >> 12) & 0x3F));
-        utf8_str += static_cast<char>(0x80 | ((ch >> 6) & 0x3F));
-        utf8_str += static_cast<char>(0x80 | (ch & 0x3F));
-      }
-    }
-    file << utf8_str << "\n";
+  for (const Unistring &word : words) {
+    file << word.to_string() << "\n";
   }
 
   file.close();
@@ -114,9 +90,8 @@ TEST(VOCABULARY, loadVocab) {
   Vocabulary vocab = Vocabulary(test_vocab_path);
   vocab.loadVocab();
 
-  vector<unordered_map<int, wstring>> table = vocab.getVocabHashTable();
-  vector<unordered_map<int, wstring>> test_table = createTestHashTable();
-
+  vector<unordered_map<int, Unistring>> table = vocab.getVocabHashTable();
+  vector<unordered_map<int, Unistring>> test_table = createTestHashTable();
   EXPECT_EQ(table, test_table);
 
   remove(test_vocab_path);
