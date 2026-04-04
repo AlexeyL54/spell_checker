@@ -14,18 +14,46 @@ private:
   string value;
 
 public:
-  Unistring(const string);
+  /**
+   * @brief Конструктор
+   * @param str строка
+   */
+  Unistring(const string str);
 
-  Unistring(const char *);
+  /**
+   * @brief Конструктор
+   * @param str строка
+   */
+  Unistring(const char *str);
 
+  /**
+   * @brief Перевести в std::string
+   */
   string to_string() const;
 
+  /**
+   * @brief Перевести строку в нижний регистр
+   */
   Unistring to_lower();
 
+  /**
+   * @brief Определить длину строки
+   */
   size_t length();
 
-  vector<Unistring> split(const Unistring &); // TODO:
+  /**
+   * @brief Разбить строку на вектор подстрок по разделителю
+   * @param splitter разделитель
+   */
+  vector<Unistring> split(const Unistring &splitter); // TODO:
 
+  /**
+   * @brief Найти индекс подстроки в строке
+   * @param substr подстрока
+   * @param str строка
+   * @return индекс подстроки в строке, если подстрока найдена в строке, иначе
+   * SIZE_MAX
+   */
   size_t find(const Unistring &substr, const Unistring &str); // TODO:
 
   Unistring &operator=(const Unistring &right);

@@ -68,30 +68,52 @@ size_t Unistring::length() {
 }
 
 Unistring Unistring::to_lower() {
-  string lower_str = value;
+  std::string lower_str = value;
+  size_t len = value.length();
 
-  unsigned char c1 = static_cast<unsigned char>(value[0]);
-  unsigned char c2;
+  for (size_t i = 0; i < len;) {
+    unsigned char c1 = static_cast<unsigned char>(value[i]);
 
-  if (c1 == 0xD0) {
+    // Если это начало 2-байтового символа UTF-8 (110xxxxx)
+    if ((c1 & 0xE0) == 0xC0) {
 
-    for (size_t i = 0; i < value.length(); i += 2) {
+      // Защита от некорректной UTF-8
+      if (i + 1 >= len)
+        break;
 
-      c1 = static_cast<unsigned char>(value[i]);
-      c2 = static_cast<unsigned char>(value[i + 1]);
+      unsigned char c2 = static_cast<unsigned char>(value[i + 1]);
 
-      if (c2 >= 0x90 && c2 <= 0x9F) {
-        lower_str[i] = 0xD0;
-        lower_str[i + 1] = c2 + 0x20;
-      } else if (c2 >= 0xA0 && c2 <= 0xAF) {
-        lower_str[i] = 0xD1;
-        lower_str[i + 1] = c2 - 0x20;
-      } else if (c2 == 0x81) {
-        lower_str[i] = 0xD1;
-        lower_str[i + 1] = 0x91;
+      // Специальные случаи (Ё, І, Є)
+      if (c1 == 0xD0) {
+        if (c2 == 0x81) { // Ё -> ё
+          lower_str[i] = 0xD1;
+          lower_str[i + 1] = 0x91;
+        } else if (c2 == 0x86) { // І -> і
+          lower_str[i] = 0xD1;
+          lower_str[i + 1] = 0x96;
+        } else if (c2 == 0x88) { // Є -> є
+          lower_str[i] = 0xD1;
+          lower_str[i + 1] = 0x94;
+        }
+        // А-П (D0 90-9F) -> а-п (D0 B0-BF)
+        else if (c2 >= 0x90 && c2 <= 0x9F) {
+          lower_str[i] = 0xD0;
+          lower_str[i + 1] = c2 + 0x20;
+        }
+        // Р-Я (D0 A0-AF) -> р-я (D1 80-8F)
+        else if (c2 >= 0xA0 && c2 <= 0xAF) {
+          lower_str[i] = 0xD1;
+          lower_str[i + 1] = c2 - 0x20;
+        }
       }
+
+      i += 2;
+    } else {
+      // TODO: Однобайтовый символ (ASCII) или другая длина UTF-8
+      i++;
     }
   }
+
   return Unistring(lower_str);
 }
 
