@@ -8,11 +8,15 @@ using std::string;
 
 using utf8::Unistring;
 
-Unistring::Unistring() {};
+Unistring::Unistring() : offsets_dirty(true) { update_offsets(); };
 
-Unistring::Unistring(const string s) : value(s) {};
+Unistring::Unistring(const string s) : value(s), offsets_dirty(true) {
+  update_offsets();
+};
 
-Unistring::Unistring(const char *s) : value(s) {};
+Unistring::Unistring(const char *s) : value(s), offsets_dirty(true) {
+  update_offsets();
+};
 
 string Unistring::to_string() const { return value; }
 
@@ -21,68 +25,179 @@ Unistring &Unistring::operator=(const Unistring &right) {
     return *this;
   }
   value = right.value;
+  update_offsets();
   return *this;
 }
 
 Unistring &Unistring::operator=(const string &right) {
   value = right;
+  offsets_dirty = true;
+  update_offsets();
   return *this;
 }
 
 Unistring &Unistring::operator=(const char *right) {
   value = right;
+  offsets_dirty = true;
+  update_offsets();
   return *this;
 }
 
-Unistring Unistring::operator[](size_t index) const {
-  string symbol;
-  int8_t bytes_to_decode_symbol;
-  unsigned char first_byte = static_cast<unsigned char>(value[0]);
+void Unistring::update_offsets() const {
+  if (!offsets_dirty)
+    return;
 
-  if (first_byte == 0xD0 or first_byte == 0xD1) {
-    bytes_to_decode_symbol = 2;
-    index *= bytes_to_decode_symbol;
-    symbol.push_back(value[index]);
-    symbol.push_back(value[index + 1]);
-  } else {
-    symbol = value[index];
+  char_offsets.clear();
+  size_t len = value.length();
+  size_t i = 0;
+  uint8_t bytes;
+  while (i < len) {
+    char_offsets.push_back(i);
+    bytes = bytes_to_encode_symbol(value[i]);
+    if (bytes == 0)
+      bytes = 1;
+    i += bytes;
   }
-  return Unistring(symbol);
+}
+
+Unistring Unistring::operator[](size_t index) const {
+  if (index >= char_offsets.size()) {
+    return Unistring();
+  }
+
+  update_offsets();
+
+  size_t offset = char_offsets[index];
+  uint8_t bytes = bytes_to_encode_symbol(value[offset]);
+  size_t start_byte = char_offsets[index];
+  // Определить длину следующего символа, чтобы знать, сколько байт копировать
+  // Можно взять разницу между следующим смещением и текущим,
+  // либо вычислить длину текущего символа
+  size_t end_byte;
+  if (index + 1 < char_offsets.size()) {
+    end_byte = char_offsets[index + 1];
+  } else {
+    end_byte = value.size();
+  }
+
+  std::string symbol_str = value.substr(start_byte, end_byte - start_byte);
+  return Unistring(symbol_str);
 }
 
 Unistring Unistring::operator[](int index) const {
-  string symbol;
-  int8_t bytes_to_decode_symbol;
-  unsigned char first_byte = static_cast<unsigned char>(value[0]);
-
-  if (first_byte == 0xD0 or first_byte == 0xD1) {
-    bytes_to_decode_symbol = 2;
-    index *= bytes_to_decode_symbol;
-    symbol.push_back(value[index]);
-    symbol.push_back(value[index + 1]);
-  } else {
-    symbol = value[index];
+  if (index < 0 or index >= char_offsets.size()) {
+    return Unistring();
   }
-  return Unistring(symbol);
+
+  update_offsets();
+
+  size_t offset = char_offsets[index];
+  uint8_t bytes = bytes_to_encode_symbol(value[offset]);
+  size_t start_byte = char_offsets[index];
+  // Определить длину следующего символа, чтобы знать, сколько байт копировать
+  // Можно взять разницу между следующим смещением и текущим,
+  // либо вычислить длину текущего символа
+  size_t end_byte;
+  if (index + 1 < char_offsets.size()) {
+    end_byte = char_offsets[index + 1];
+  } else {
+    end_byte = value.size();
+  }
+
+  std::string symbol_str = value.substr(start_byte, end_byte - start_byte);
+  return Unistring(symbol_str);
 }
 
-size_t Unistring::length() const {
-  size_t len = 0;
-  int8_t bytes_to_decode_symbol;
-  unsigned char first_byte_of_symbol;
+uint8_t utf8::bytes_to_encode_symbol(const string &symbol) {
+  const unsigned char ch = static_cast<const unsigned char>(symbol[0]);
 
-  for (size_t i = 0; i < value.length();) {
-    first_byte_of_symbol = static_cast<unsigned char>(value[i]);
-
-    if (first_byte_of_symbol == 0xD0 or first_byte_of_symbol == 0xD1) {
-      bytes_to_decode_symbol = 2;
-    } else {
-      bytes_to_decode_symbol = 1;
-    }
-    len++;
-    i += bytes_to_decode_symbol;
+  if ((ch & 0b10000000) == 0) { // 0xxxxxxxx
+    return 1;
+  } else if ((ch & 0b11100000) == 0b11000000) { // 110xxxxx
+    return 2;
+  } else if ((ch & 0b11110000) == 0b11100000) { // 1110xxxx
+    return 3;
+  } else if ((ch & 0b11111000) == 0b11110000) { // 11110xxx
+    return 4;
+  } else {
+    return 0;
   }
-  return len;
+}
+
+uint8_t utf8::bytes_to_encode_symbol(const unsigned char symbol) {
+  if ((symbol & 0b10000000) == 0) { // 0xxxxxxxx
+    return 1;
+  } else if ((symbol & 0b11100000) == 0b11000000) { // 110xxxxx
+    return 2;
+  } else if ((symbol & 0b11110000) == 0b11100000) { // 1110xxxx
+    return 3;
+  } else if ((symbol & 0b11111000) == 0b11110000) { // 11110xxx
+    return 4;
+  } else {
+    return 0;
+  }
+}
+
+size_t Unistring::length() const { return char_offsets.size(); }
+
+vector<size_t> Unistring::compute_prefix_function() const {
+  size_t m = this->length();
+  if (m == 0)
+    return {};
+
+  vector<size_t> pi(m, 0);
+  // длина текущего префикс-суффикса
+  size_t k = 0;
+
+  // со второго символа (индекс 1)
+  for (size_t q = 1; q < m; ++q) {
+    // Пока не совпадает и k > 0, откатываем k
+    while (k > 0 && (*this)[k] != (*this)[q]) {
+      k = pi[k - 1];
+    }
+
+    // если символы совпали, увеличиваем k
+    if ((*this)[k] == (*this)[q]) {
+      ++k;
+    }
+
+    pi[q] = k;
+  }
+  return pi;
+}
+
+size_t Unistring::find(const Unistring &substr) {
+  size_t n = this->length();
+  size_t m = substr.length();
+
+  // Пустая подстрока находится везде
+  if (m == 0)
+    return 0;
+  // Подстрока длиннее текста
+  if (n < m)
+    return SIZE_MAX;
+
+  vector<size_t> pi = substr.compute_prefix_function();
+  size_t q = 0; // Количество совпавших символов
+
+  for (size_t i = 0; i < n; ++i) {
+    while (q > 0 && substr[q] != (*this)[i]) {
+      q = pi[q - 1];
+    }
+
+    // Если символы совпали, увеличиваем q
+    if (substr[q] == (*this)[i]) {
+      ++q;
+    }
+
+    // Если все символы подстроки совпали
+    if (q == m) {
+      // Возвращаем индекс начала подстроки в тексте
+      return i - m + 1;
+    }
+  }
+
+  return SIZE_MAX;
 }
 
 Unistring Unistring::to_lower() {
@@ -147,6 +262,19 @@ bool utf8::operator==(const Unistring &s1, const char *s2) {
   return s1.to_string() == s2;
 }
 
+bool utf8::operator!=(const Unistring &s1, const Unistring &s2) {
+  return s1.to_string() != s2.to_string();
+}
+
+bool utf8::operator!=(const Unistring &s1, const string &s2) {
+  return s1.to_string() != s2;
+}
+
+bool utf8::operator!=(const Unistring &s1, const char *s2) {
+  return s1.to_string() != s2;
+}
+
+// TODO: поддержка многобайтовых символов
 /*
  * @brief Конвертировать символ строки Unistring в int
  * @param ch символ
