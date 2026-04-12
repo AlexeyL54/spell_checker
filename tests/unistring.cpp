@@ -1,4 +1,5 @@
 #include "../src/back/unistring.hpp"
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <string>
 
@@ -123,4 +124,30 @@ TEST(UNISTRING, find) {
   EXPECT_EQ(str.find("中"), 2);
   EXPECT_EQ(str.find("😀"), 3);
   EXPECT_EQ(str.find("!"), 4);
+  EXPECT_EQ(str.find("中😀"), 2);
+  EXPECT_EQ(str.find("😀!"), 3);
+  EXPECT_EQ(str.find("жñ中"), 0);
+  EXPECT_EQ(str.find("abc"), SIZE_MAX);
+}
+
+TEST(UNISTRING, find_from_index) {
+  Unistring str = "жñ中😀!";
+
+  EXPECT_EQ(str.find("ñ", 0), 1);
+  EXPECT_EQ(str.find("中", 1), 2);
+  EXPECT_EQ(str.find("😀", 2), 3);
+  EXPECT_EQ(str.find("!", 1), 4);
+  EXPECT_EQ(str.find("中😀", 0), 2);
+  EXPECT_EQ(str.find("😀!", 1), 3);
+  EXPECT_EQ(str.find("жñ中"), 0);
+  EXPECT_EQ(str.find("abc"), SIZE_MAX);
+}
+
+TEST(UNISTRING, concatination) {
+  Unistring str = "жñ中";
+  Unistring right1 = "😀!";
+  string right2 = "abc";
+
+  EXPECT_EQ(str + right1, "жñ中😀!");
+  EXPECT_EQ(str + right2, "жñ中😀!abc");
 }

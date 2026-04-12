@@ -43,6 +43,21 @@ Unistring &Unistring::operator=(const char *right) {
   return *this;
 }
 
+Unistring &Unistring::operator+(const Unistring &right) {
+  value += right.value;
+  char_offsets.insert(char_offsets.end(), right.char_offsets.begin(),
+                      right.char_offsets.end());
+  return *this;
+}
+
+Unistring &Unistring::operator+(const string &right) {
+  Unistring uniright(right);
+  value += uniright.value;
+  char_offsets.insert(char_offsets.end(), uniright.char_offsets.begin(),
+                      uniright.char_offsets.end());
+  return *this;
+}
+
 void Unistring::update_offsets() const {
   if (!offsets_dirty)
     return;
@@ -181,6 +196,54 @@ size_t Unistring::find(const Unistring &substr) {
   size_t q = 0; // Количество совпавших символов
 
   for (size_t i = 0; i < n; ++i) {
+    while (q > 0 && substr[q] != (*this)[i]) {
+      q = pi[q - 1];
+    }
+
+    // Если символы совпали, увеличиваем q
+    if (substr[q] == (*this)[i]) {
+      ++q;
+    }
+
+    // Если все символы подстроки совпали
+    if (q == m) {
+      // Возвращаем индекс начала подстроки в тексте
+      return i - m + 1;
+    }
+  }
+
+  return SIZE_MAX;
+}
+
+size_t Unistring::find(const Unistring &substr, size_t start_index) {
+  size_t n = this->length();
+  size_t m = substr.length();
+
+  // Пустая подстрока находится везде, возвращаем start_index или 0?
+  // Обычно для пустой подстроки возвращают сам индекс начала поиска, если он
+  // валиден.
+  if (m == 0) {
+    if (start_index <= n) {
+      return start_index;
+    }
+    return SIZE_MAX;
+  }
+
+  // Если начальный индекс выходит за пределы строки
+  if (start_index >= n) {
+    return SIZE_MAX;
+  }
+
+  // Подстрока длиннее оставшейся части строки
+  if (n - start_index < m) {
+    return SIZE_MAX;
+  }
+
+  vector<size_t> pi = substr.compute_prefix_function();
+  size_t q = 0; // Количество совпавших символов в подстроке
+
+  // Начинаем поиск с start_index
+  for (size_t i = start_index; i < n; ++i) {
     while (q > 0 && substr[q] != (*this)[i]) {
       q = pi[q - 1];
     }
