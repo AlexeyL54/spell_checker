@@ -1,6 +1,7 @@
 #include "TextEditWithSpellCheck.hpp"
 #include "../back/unistring.hpp"
 #include "../back/vocab.hpp"
+#include "qlogging.h"
 #include <QApplication>
 #include <QClipboard>
 #include <QDebug>
@@ -209,16 +210,19 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
   if (!vocab_)
     return result;
 
-  // Регулярное выражение для слов: кириллица и латиница
-  QRegularExpression wordRegex(R"(\b[а-яА-ЯёЁa-zA-Z]+\b)");
+  QRegularExpression wordRegex(
+      R"((?<=^|\s|[^\p{L}])[а-яА-ЯёЁa-zA-Z]+(?=$|\s|[^\p{L}]))");
+
   QRegularExpressionMatchIterator it = wordRegex.globalMatch(text);
 
+  qDebug() << "Сейчас будем перебирать слова через it.hasNext\n";
   while (it.hasNext()) {
     QRegularExpressionMatch match = it.next();
     int start = match.capturedStart();
     int length = match.capturedLength();
     QString word = match.captured();
 
+    qDebug() << "word: " << word << "\n";
     // Пропускаем игнорируемые слова
     if (isWordIgnored(word))
       continue;
@@ -228,9 +232,12 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
     utf8::Unistring ustr(utf8Word);
 
     try {
-      if (vocab_->isInVocab(ustr))
+      if (vocab_->isInVocab(ustr)) {
+        qDebug() << "ингорируем слово" << "\n";
         continue; // слово есть в словаре
+      }
 
+      qDebug() << "получаем исправления" << "\n";
       // Получаем исправления
       std::vector<utf8::Unistring> suggestionsUtf8 =
           vocab_->checkWordSpelling(ustr);
