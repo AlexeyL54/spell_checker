@@ -10,234 +10,263 @@ using std::vector;
 namespace utf8 {
 
 /**
- * @brief Класс для работы с UTF-8 строками.
+ * @brief Class for working with UTF-8 strings.
  *
- * Предоставляет функционал для корректной обработки многобайтовых символов
- * UTF-8, включая получение длины в символах, доступ по индексу, поиск подстрок
- * и приведение к нижнему регистру.
+ * Provides functionality for correct handling of multi-byte UTF-8 characters,
+ * including obtaining length in characters, index access, substring search,
+ * and conversion to lowercase.
  */
 class Unistring {
 public:
   /**
-   * @brief Конструктор по умолчанию.
+   * @brief Default constructor.
    *
-   * Инициализирует пустую строку.
+   * Initializes an empty string.
    */
   Unistring();
 
   /**
-   * @brief Конструктор из std::string.
-   * @param str Исходная строка в формате std::string (предположительно UTF-8).
+   * @brief Constructor from std::string.
+   * @param str Source string in std::string format (assumed to be UTF-8).
    */
   Unistring(const string str);
 
   /**
-   * @brief Конструктор из C-строки.
-   * @param str Исходная C-строка (предположительно UTF-8).
+   * @brief Constructor from C-string.
+   * @param str Source C-string (assumed to be UTF-8).
    */
   Unistring(const char *str);
 
   /**
-   * @brief Преобразует объект Unistring обратно в std::string.
-   * @return Копия внутренней строки в формате std::string.
+   * @brief Converts the Unistring object back to std::string.
+   * @return Copy of the internal string in std::string format.
    */
   string to_string() const;
 
   /**
-   * @brief Преобразует все символы строки в нижний регистр.
+   * @brief Converts all characters in the string to lowercase.
    *
-   * Поддерживает базовые кириллические символы (А-Я, Ё, І, Є) и ASCII.
-   * @return Новый объект Unistring со строчными буквами.
+   * Supports basic Cyrillic characters (A-Ya, Yo, I, Ye) and ASCII.
+   * @return A new Unistring object with lowercase letters.
    */
   Unistring to_lower();
 
   /**
-   * @brief Возвращает количество символов (кодовых точек) в строке.
-   * @return Длина строки в символах UTF-8.
+   * @brief Returns the number of characters (code points) in the string.
+   * @return Length of the string in UTF-8 characters.
    */
   size_t length() const;
 
   /**
-   * @brief Разбить строку на вектор подстрок по разделителю.
-   * @param splitter Строка-разделитель.
-   * @return Вектор подстрок.
-   * @todo Реализовать метод split.
+   * @brief Splits the string into a vector of substrings by delimiter.
+   * @param splitter The delimiter string.
+   * @return Vector of substrings.
+   * @todo Implement the split method.
    */
   // TODO: vector<Unistring> split(const Unistring &splitter);
 
   /**
-   * @brief Найти индекс первого вхождения подстроки.
+   * @brief Finds the index of the first occurrence of a substring.
    *
-   * Использует алгоритм Кнута-Морриса-Пратта для поиска.
-   * @param substr Искомая подстрока.
-   * @return Индекс начала подстроки в текущей строке, если найдена; иначе
-   * SIZE_MAX.
+   * Uses the Knuth-Morris-Pratt algorithm for searching.
+   * @param substr The substring to search for.
+   * @return The index of the start of the substring in the current string if
+   * found; otherwise SIZE_MAX.
    */
   size_t find(const Unistring &substr);
 
   /**
-   * @brief Найти индекс первого вхождения подстроки, начиная с указанного
-   * индекса.
+   * @brief Finds the index of the first occurrence of a substring, starting
+   * from the specified index.
    *
-   * Использует алгоритм Кнута-Морриса-Пратта для поиска.
-   * @param substr Искомая подстрока.
-   * @param start_index Индекс символа, с которого начинается поиск.
-   * @return Индекс начала подстроки в текущей строке, если найдена; иначе
-   * SIZE_MAX.
+   * Uses the Knuth-Morris-Pratt algorithm for searching.
+   * @param substr The substring to search for.
+   * @param start_index The character index from which to start searching.
+   * @return The index of the start of the substring in the current string if
+   * found; otherwise SIZE_MAX.
    */
   size_t find(const Unistring &substr, size_t start_index);
 
   /**
-   * @brief Оператор присваивания другого объекта Unistring.
-   * @param right Правый операнд.
-   * @return Ссылка на текущий объект.
+   * @brief Assignment operator for another Unistring object.
+   * @param right Right-hand operand.
+   * @return Reference to the current object.
    */
   Unistring &operator=(const Unistring &right);
 
   /**
-   * @brief Оператор присваивания из std::string.
-   * @param right Правый операнд.
-   * @return Ссылка на текущий объект.
+   * @brief Assignment operator from std::string.
+   * @param right Right-hand operand.
+   * @return Reference to the current object.
    */
   Unistring &operator=(const string &right);
 
   /**
-   * @brief Оператор присваивания из C-строки.
-   * @param right Правый операнд.
-   * @return Ссылка на текущий объект.
+   * @brief Assignment operator from C-string.
+   * @param right Right-hand operand.
+   * @return Reference to the current object.
    */
   Unistring &operator=(const char *right);
 
   /**
-   * @brief Оператор сложения Unistring с Unistring.
-   * @param right Правый операнд.
-   * @return Ссылка на текущий объект.
+   * @brief Addition operator for Unistring with Unistring.
+   * @param right Right-hand operand.
+   * @return New Unistring object as the result of concatenation.
    */
-  Unistring &operator+(const Unistring &right);
+  Unistring operator+(const Unistring &right);
 
   /**
-   * @brief Оператор сложения Unistring со string.
-   * @param right Правый операнд.
-   * @return Ссылка на текущий объект.
+   * @brief Addition operator for Unistring with string.
+   * @param right Right-hand operand.
+   * @return New Unistring object as the result of concatenation.
    */
-  Unistring &operator+(const string &right);
+  Unistring operator+(const string &right);
+
   /**
-   * @brief Оператор доступа к символу по индексу (size_t).
+   * @brief Addition-assignment operator for Unistring with Unistring.
+   * @param right Right-hand operand.
+   * @return Reference to the current object.
+   */
+  Unistring &operator+=(const Unistring &right);
+
+  /**
+   * @brief Addition-assignment operator for Unistring with string.
+   * @param right Right-hand operand.
+   * @return Reference to the current object.
+   */
+  Unistring &operator+=(const string &right);
+
+  /**
+   * @brief Index access operator (size_t).
    *
-   * Возвращает новый объект Unistring, содержащий один символ по указанному
-   * индексу. Если индекс выходит за границы, возвращает пустую строку.
-   * @param index Индекс символа.
-   * @return Unistring, содержащий один символ.
+   * Returns a new Unistring object containing a single character at the
+   * specified index. If the index is out of bounds, returns an empty string.
+   * @param index The character index.
+   * @return Unistring containing a single character.
    */
   Unistring operator[](size_t index) const;
 
   /**
-   * @brief Оператор доступа к символу по индексу (int).
+   * @brief Index access operator (int).
    *
-   * Возвращает новый объект Unistring, содержащий один символ по указанному
-   * индексу. Поддерживает отрицательные индексы? (В текущей реализации
-   * возвращает пустую строку при index < 0). Если индекс выходит за границы,
-   * возвращает пустую строку.
-   * @param index Индекс символа.
-   * @return Unistring, содержащий один символ.
+   * Returns a new Unistring object containing a single character at the
+   * specified index. Supports negative indices? (Current implementation returns
+   * empty string when index < 0). If the index is out of bounds, returns an
+   * empty string.
+   * @param index The character index.
+   * @return Unistring containing a single character.
    */
   Unistring operator[](int index) const;
 
-private:
-  string value; // Внутреннее представление строки в виде байтовой
-                // последовательности UTF-8.
-  mutable vector<size_t>
-      char_offsets;           // Кэш смещений байтов для каждого символа UTF-8.
-  mutable bool offsets_dirty; // Флаг, указывающий, что кэш смещений устарел и
-                              // требует обновления.
+  /**
+   * @brief Returns the cached byte offsets for each character.
+   * @return Vector of byte offsets.
+   */
+  vector<size_t> get_char_offsets() const;
 
   /**
-   * @brief Обновляет кэш смещений символов, если он помечен как грязный.
+   * @brief Extracts a substring from the string.
+   * @param start The starting character index (inclusive).
+   * @param end The ending character index (inclusive).
+   * @return A new Unistring object containing the extracted substring.
+   */
+  Unistring substr(size_t start, size_t end) const;
+
+private:
+  string value; ///< Internal string representation as a UTF-8 byte sequence.
+  mutable vector<size_t>
+      char_offsets; ///< Cache of byte offsets for each UTF-8 character.
+  mutable bool offsets_dirty; ///< Flag indicating that the offset cache is
+                              ///< stale and needs updating.
+
+  /**
+   * @brief Updates the character offset cache if it is marked as dirty.
    *
-   * Сканирует внутреннюю строку value и заполняет char_offsets позициями
-   * начала каждого символа UTF-8.
+   * Scans the internal value string and fills char_offsets with the starting
+   * positions of each UTF-8 character.
    */
   void update_offsets() const;
 
   /**
-   * @brief Вычисляет префикс-функцию для алгоритма Кнута-Морриса-Пратта.
-   * @return Вектор значений префикс-функции для текущей строки.
+   * @brief Computes the prefix function for the Knuth-Morris-Pratt algorithm.
+   * @return A vector of prefix function values for the current string.
    */
   vector<size_t> compute_prefix_function() const;
 };
 
 /**
- * @brief Сравнение двух объектов Unistring на равенство.
- * @param s1 Первый операнд.
- * @param s2 Второй операнд.
- * @return true, если строки идентичны; иначе false.
+ * @brief Compares two Unistring objects for equality.
+ * @param s1 First operand.
+ * @param s2 Second operand.
+ * @return true if the strings are identical; false otherwise.
  */
 bool operator==(const Unistring &s1, const Unistring &s2);
 
 /**
- * @brief Сравнение Unistring и std::string на равенство.
- * @param s1 Объект Unistring.
- * @param s2 Объект std::string.
- * @return true, если строки идентичны; иначе false.
+ * @brief Compares a Unistring object with a std::string for equality.
+ * @param s1 Unistring object.
+ * @param s2 std::string object.
+ * @return true if the strings are identical; false otherwise.
  */
 bool operator==(const Unistring &s1, const string &s2);
 
 /**
- * @brief Сравнение Unistring и C-строки на равенство.
- * @param s1 Объект Unistring.
- * @param s2 C-строка.
- * @return true, если строки идентичны; иначе false.
+ * @brief Compares a Unistring object with a C-string for equality.
+ * @param s1 Unistring object.
+ * @param s2 C-string.
+ * @return true if the strings are identical; false otherwise.
  */
 bool operator==(const Unistring &s1, const char *s2);
 
 /**
- * @brief Сравнение двух объектов Unistring на неравенство.
- * @param s1 Первый операнд.
- * @param s2 Второй операнд.
- * @return true, если строки различны; иначе false.
+ * @brief Compares two Unistring objects for inequality.
+ * @param s1 First operand.
+ * @param s2 Second operand.
+ * @return true if the strings are different; false otherwise.
  */
 bool operator!=(const Unistring &s1, const Unistring &s2);
 
 /**
- * @brief Сравнение Unistring и std::string на неравенство.
- * @param s1 Объект Unistring.
- * @param s2 Объект std::string.
- * @return true, если строки различны; иначе false.
+ * @brief Compares a Unistring object with a std::string for inequality.
+ * @param s1 Unistring object.
+ * @param s2 std::string object.
+ * @return true if the strings are different; false otherwise.
  */
 bool operator!=(const Unistring &s1, const string &s2);
 
 /**
- * @brief Сравнение Unistring и C-строки на неравенство.
- * @param s1 Объект Unistring.
- * @param s2 C-строка.
- * @return true, если строки различны; иначе false.
+ * @brief Compares a Unistring object with a C-string for inequality.
+ * @param s1 Unistring object.
+ * @param s2 C-string.
+ * @return true if the strings are different; false otherwise.
  */
 bool operator!=(const Unistring &s1, const char *s2);
 
 /**
- * @brief Определяет количество байт, необходимых для кодирования символа
- * UTF-8, начиная с переданной строки.
- * @param symbol Строка, начинающаяся с искомого символа.
- * @return Количество байт (1-4) или 0, если последовательность некорректна.
+ * @brief Determines the number of bytes needed to encode a UTF-8 character
+ * starting from the given string.
+ * @param symbol String starting with the character to examine.
+ * @return Number of bytes (1-4) or 0 if the sequence is invalid.
  */
 uint8_t bytes_to_encode_symbol(const string &symbol);
 
 /**
- * @brief Определяет количество байт, необходимых для кодирования символа
- * UTF-8, по первому байту.
- * @param symbol Первый байт символа UTF-8.
- * @return Количество байт (1-4) или 0, если последовательность некорректна.
+ * @brief Determines the number of bytes needed to encode a UTF-8 character
+ * based on the first byte.
+ * @param symbol The first byte of the UTF-8 character.
+ * @return Number of bytes (1-4) or 0 if the sequence is invalid.
  */
 uint8_t bytes_to_encode_symbol(const unsigned char symbol);
 
 /**
- * @brief Конвертирует односимвольную строку Unistring в её Unicode code point
+ * @brief Converts a single-character Unistring string to its Unicode code point
  * (int).
  *
- * Внимание: текущая реализация поддерживает только 2-байтовые символы или
- * может работать некорректно для других случаев.
- * @param ch Объект Unistring, содержащий ровно один символ.
- * @return Код символа типа int, или -1, если длина строки больше 1.
+ * Note: The current implementation only supports 2-byte characters or may work
+ * incorrectly for other cases.
+ * @param ch Unistring object containing exactly one character.
+ * @return The character code as an int, or -1 if the string length is greater
+ * than 1.
  */
 int unichar_to_int(const Unistring &ch);
 

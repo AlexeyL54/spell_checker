@@ -12,11 +12,19 @@ set(SOURCES
     main.cpp
     src/front/InputPage.cpp
     src/front/MainWindow.cpp
+    src/front/TextEditWithSpellCheck.cpp
+    src/front/ThemeManager.cpp
+    src/back/vocab.cpp
+    src/back/unistring.cpp
 )
 
 set(HEADERS
     src/front/InputPage.hpp
     src/front/MainWindow.hpp
+    src/front/TextEditWithSpellCheck.hpp
+    src/front/ThemeManager.hpp
+    src/back/vocab.hpp
+    src/back/unistring.hpp
 )
 
 add_executable(SpellChecker ${SOURCES} ${HEADERS})

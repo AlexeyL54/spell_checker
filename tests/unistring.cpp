@@ -149,5 +149,27 @@ TEST(UNISTRING, concatination) {
   string right2 = "abc";
 
   EXPECT_EQ(str + right1, "жñ中😀!");
-  EXPECT_EQ(str + right2, "жñ中😀!abc");
+  EXPECT_EQ(str + right2, "жñ中abc");
+}
+
+TEST(UNISTRING, preconcatination) {
+  Unistring str = "жñ中";
+  Unistring right1 = "😀!";
+  string right2 = "abc";
+
+  str += right1;
+  EXPECT_EQ(str, "жñ中😀!");
+
+  str += right2;
+  EXPECT_EQ(str, "жñ中😀!abc");
+}
+
+TEST(UNISTRING, substr) {
+  Unistring str = "жñ中😀!abc";
+
+  EXPECT_EQ(str.substr(1, 3), "ñ中😀");
+  EXPECT_EQ(str.substr(0, 2), "жñ中");
+  EXPECT_EQ(str.substr(5, 7), "abc");
+  EXPECT_EQ(str.substr(8, 7), "");
+  EXPECT_EQ(str.substr(4, 9), "!abc");
 }

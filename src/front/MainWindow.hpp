@@ -1,10 +1,11 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QStackedWidget>
-#include <QWidget>
-
+#include "../back/vocab.hpp"
 #include "InputPage.hpp"
+#include "ThemeManager.hpp"
+#include <QComboBox>
+#include <QWidget>
 
 class MainWindow : public QWidget {
   Q_OBJECT
@@ -14,16 +15,24 @@ public:
   ~MainWindow();
 
 private slots:
-  // Слоты для навигации между страницами
-  // void onAnalyzeRequested();
+  void onCheckRequested();
+  void onFixRequested();
+  void onRevertRequested();
+  void onClearRequested();
+  void onCopyRequested();
+  void onSaveRequested();
+  void onThemeChanged(int index);
 
 private:
   void setupUI();
-  void setupConnections();
-  void createSearchItems(); // Создаёт элементы для поиска из готовых файлов
+  void setupThemeSelector();
+  void applyTheme(const ThemeColors &colors);
+  void loadTextFromFile(const QString &path);
 
-  QStackedWidget *stackedWidget = nullptr;
   InputPage *inputPage = nullptr;
+  ThemeManager *themeManager = nullptr;
+  QComboBox *themeCombo = nullptr;
+  Vocabulary *vocabulary = nullptr;
 };
 
 #endif // MAINWINDOW_H

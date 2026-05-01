@@ -1,23 +1,19 @@
 #include "vocab.hpp"
 #include "unistring.hpp"
-#include <climits>
-#include <cmath>
+#include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <cwchar>
 #include <fstream>
+#include <iostream>
 #include <math.h>
 #include <string>
 
 using std::getline;
 using std::ifstream;
-using std::pow;
 using std::wstring;
 using utf8::Unistring;
-
-// TODO: Vocabulary::vocab_hash_table.resize(кол-во длин строк в файле)
-// TODO: индекс Vocabulary::vocab_hash_table = длина строки - 1
-// TODO: переписать с wstring на string или свой тип для utf8
 
 /**
  * @brief Конструктор
@@ -26,8 +22,7 @@ using utf8::Unistring;
  * поле пути к файлу словаря;
  * размер алфавита словаря и проверяемого текста
  */
-Vocabulary::Vocabulary(const string &path)
-    : vocab_path(path), alphabet_size(INT_MAX) {}
+Vocabulary::Vocabulary(const string &path) : vocab_path(path) {}
 
 /**
  * @brief Вычислить количество строк в файле
@@ -49,12 +44,33 @@ size_t Vocabulary::rowsTotal(ifstream &file) {
 }
 
 /**
+ * @brief Вычислить максимальную длину строк
+ * @param file ссылка на потокoк
+ * @return максимальную длину строк
+ */
+size_t Vocabulary::maxRowLength(ifstream &file) {
+  size_t maxLen = 0;
+  std::string line;
+  Unistring uline;
+
+  while (getline(file, line)) {
+    if ((uline = Unistring(line)).length() > maxLen)
+      maxLen = uline.length();
+  }
+
+  file.clear();
+  file.seekg(0, std::ios::beg);
+
+  return maxLen;
+}
+
+/**
  * @brief Загрузить словарь и представить его в виде хэш-таблицы
  */
 void Vocabulary::loadVocab() {
   string line;
   Unistring uline;
-  int wline_hash;
+  size_t wline_hash;
 
   ifstream file(vocab_path);
   if (!file.is_open()) {
@@ -62,8 +78,8 @@ void Vocabulary::loadVocab() {
     return;
   }
 
-  size_t dif_len_total = Vocabulary::rowsTotal(file);
-  Vocabulary::vocab_hash_table.resize(dif_len_total);
+  size_t dif_len_total = Vocabulary::maxRowLength(file);
+  Vocabulary::vocab_hash_table.resize(dif_len_total + 1);
 
   while (getline(file, line)) {
     uline = line;
@@ -75,26 +91,27 @@ void Vocabulary::loadVocab() {
 }
 
 /**
- * @brief Создать хэш код для строки
+ * @brief Создать хэш код для строки (DJB2)
  * @param str ссылка на строку
  * @return хэш код
  */
-int Vocabulary::createHashCode(const Unistring &str) {
-  int code = 0;
+size_t Vocabulary::createHashCode(const Unistring &str) {
+  // Простая, но эффективная хэш-функция
+  size_t hash = 5381;
   int length = str.length();
 
   for (int i = 0; i < length; i++) {
-    code += pow(alphabet_size, length - (i + 1)) * unichar_to_int(str[i]);
+    hash = ((hash << 5) + hash) + utf8::unichar_to_int(str[i]); // hash * 33 + c
   }
 
-  return code;
+  return hash;
 }
 
 /**
  * @brief Получить копию хэш-таблицы словаря
  * @return хэш-таблицу словаря
  */
-vector<unordered_map<int, Unistring>> Vocabulary::getVocabHashTable() {
+vector<unordered_map<size_t, Unistring>> Vocabulary::getVocabHashTable() {
   return Vocabulary::vocab_hash_table;
 }
 
@@ -104,16 +121,96 @@ vector<unordered_map<int, Unistring>> Vocabulary::getVocabHashTable() {
  * @return true, если строка есть в словаре, иначе false
  */
 bool Vocabulary::isInVocab(const Unistring &str) {
-  int key = createHashCode(str);
+  size_t key = createHashCode(str);
   size_t index = str.length();
 
   if (index < Vocabulary::vocab_hash_table.size()) {
-
-    if (Vocabulary::vocab_hash_table[index].find(key) !=
-        Vocabulary::vocab_hash_table[index].end()) {
-      return true;
+    auto it = Vocabulary::vocab_hash_table[index].find(key);
+    if (it != Vocabulary::vocab_hash_table[index].end()) {
+      // Verify it's actually the same string (handle hash collisions)
+      return it->second == str;
     }
   }
 
   return false;
+}
+
+/**
+ * @brief Проверить слово на орфографию
+ * @param word слово для проверки
+ * @return вектор ближайших слов к проверяемому по редакционному расстоянию
+ */
+std::vector<Unistring> Vocabulary::checkWordSpelling(const Unistring &word) {
+  const uint16_t maxCorrections = 5;
+  std::vector<Unistring> corrections;
+
+  if (isInVocab(word))
+    return corrections;
+
+  // Перебираем слова с длиной от max(1, len-2) до len+2
+  size_t wordLen = word.length();
+  size_t startLen = (wordLen > 2) ? wordLen - 2 : 1;
+  size_t endLen = std::min(wordLen + 2, vocab_hash_table.size() - 1);
+
+  // Store pairs of (distance, word)
+  std::vector<std::pair<uint32_t, Unistring>> candidates;
+
+  for (size_t currentLen = startLen; currentLen <= endLen; currentLen++) {
+    for (auto &p : vocab_hash_table[currentLen]) {
+      uint32_t dist = getLevensteinDistance(word, p.second);
+      if (dist <= MAXLEVENSTEINDIST) {
+        candidates.push_back({dist, p.second});
+      }
+    }
+  }
+
+  // Сортируем по расстоянию Левенштейна
+  std::sort(candidates.begin(), candidates.end(),
+            [](const std::pair<uint32_t, Unistring> &a,
+               const std::pair<uint32_t, Unistring> &b) {
+              return a.first < b.first;
+            });
+
+  // Extract just the words in order
+  for (const auto &candidate : candidates) {
+    corrections.push_back(candidate.second);
+    if (corrections.size() >= maxCorrections) {
+      break;
+    }
+  }
+
+  return corrections;
+}
+
+/**
+ * @brief Рассчитать расстояние Левенштейна
+ * @param word1 первое слово
+ * @param word2 второе слово
+ * @return расстояние Левенштейна
+ */
+uint32_t Vocabulary::getLevensteinDistance(const Unistring &word1,
+                                           const Unistring &word2) {
+  size_t m = word1.length();
+  size_t n = word2.length();
+
+  // Optimized to use only two rows instead of full matrix
+  std::vector<uint32_t> prev(n + 1, 0);
+  std::vector<uint32_t> curr(n + 1, 0);
+
+  for (size_t j = 0; j <= n; j++) {
+    prev[j] = j;
+  }
+
+  for (size_t i = 1; i <= m; i++) {
+    curr[0] = i;
+    for (size_t j = 1; j <= n; j++) {
+      uint32_t cost = (word1[i - 1] != word2[j - 1]) ? 1 : 0;
+      curr[j] = std::min({curr[j - 1] + 1,      // deletion
+                          prev[j] + 1,          // insertion
+                          prev[j - 1] + cost}); // substitution or match
+    }
+    std::swap(prev, curr);
+  }
+
+  return prev[n];
 }

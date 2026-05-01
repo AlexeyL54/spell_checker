@@ -5,12 +5,13 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
-#include <QPlainTextEdit>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QStackedWidget>
 #include <QVBoxLayout>
 #include <QWidget>
+
+#include "TextEditWithSpellCheck.hpp"
 
 class InputPage : public QWidget {
   Q_OBJECT
@@ -18,51 +19,62 @@ class InputPage : public QWidget {
 public:
   explicit InputPage(QWidget *parent = nullptr);
 
+  // Геттеры для доступа к элементам
+  TextEditWithSpellCheck *getTextEdit() const;
+  bool isKeyboardMode() const;
+  QString getFilePath() const;
+
 signals:
-  // Сигнал для перехода на страницу результатов
-  void analyzeRequested();
+  // Сигналы, испускаемые при нажатии соответствующих кнопок
+  void checkRequested();
+  void fixRequested();
+  void revertRequested();
+  void clearRequested();
+  void copyRequested();
+  void saveRequested();
+
+private slots:
+  void onFileSelected();  // Выбор файла
+  void onSourceToggled(); // Переключение между клавиатурой и файлом
 
 private:
-  // Методы построения интерфейса (вызываются из конструктора)
-  void setupMainLayout(); // Главный вертикальный layout окна
-  void setupContentRow(); // Горизонтальная строка для контента (колонки)
-  void
-  setupContentColumn();  // Колонка контента с отступами и вертикальным layout
-  void setupIntroText(); // Поясняющий текст вверху страницы
-  void
-  setupInputChoice(); // Радиокнопки «С клавиатуры» / «С файла» и стек страниц
-  void
-  setupKeyboardPage(); // Страница: поле ввода текста + кнопка «Анализировать»
-  void
-  setupFilePage(); // Страница: путь к файлу + «Выбрать файл» + «Анализировать»
-  void setupConnections(); // Сигналы: выбор файла, переключение страниц по
-                           // радиокнопкам
+  void setupMainLayout();
+  void setupContentRow();
+  void setupContentColumn();
+  void setupIntroText();
+  void setupInputChoice();
+  void setupKeyboardPage();
+  void setupFilePage();
+  void setupButtons(); // Новые общие кнопки
+  void setupConnections();
 
-  // Layout-ы и контейнеры
   QVBoxLayout *mainLayout = nullptr;
   QHBoxLayout *contentRow = nullptr;
   QWidget *contentColumn = nullptr;
   QVBoxLayout *contentLayout = nullptr;
 
-  // Ввод: пояснение и выбор способа
   QLabel *introText = nullptr;
   QButtonGroup *inputChoiceGroup = nullptr;
   QRadioButton *radioKeyboard = nullptr;
   QRadioButton *radioFile = nullptr;
 
-  // Стек страниц (клавиатура / файл)
   QStackedWidget *stack = nullptr;
   QWidget *pageKeyboard = nullptr;
   QWidget *pageFile = nullptr;
 
-  // Страница «С клавиатуры»
-  QPlainTextEdit *textInput = nullptr;
-  QPushButton *btnAnalyzeKeyboard = nullptr;
+  // Страница "С клавиатуры"
+  TextEditWithSpellCheck *textInput = nullptr;
+  // Кнопки действий
+  QPushButton *btnCheck = nullptr;
+  QPushButton *btnFix = nullptr;
+  QPushButton *btnRevert = nullptr;
+  QPushButton *btnClear = nullptr;
+  QPushButton *btnCopy = nullptr;
+  QPushButton *btnSave = nullptr;
 
-  // Страница «С файла»
+  // Страница "С файла"
   QLineEdit *filePathEdit = nullptr;
   QPushButton *btnSelectFile = nullptr;
-  QPushButton *btnAnalyzeFile = nullptr;
 };
 
 #endif // INPUTPAGE_HPP
