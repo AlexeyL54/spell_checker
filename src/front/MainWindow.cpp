@@ -243,85 +243,13 @@ void MainWindow::applyTheme(const ThemeColors &colors) {
   qApp->setStyleSheet(styleSheet);
 }
 
-void MainWindow::loadTextFromFile(const QString &path) {
-  QFile file(path);
-  if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-    QMessageBox::warning(this, "Ошибка", "Не удалось открыть файл.");
-    return;
-  }
-  QTextStream stream(&file);
-  stream.setEncoding(QStringConverter::Utf8);
-  QString content = stream.readAll();
-  file.close();
-
-  inputPage->getTextEdit()->setText(content);
-  // Переключаем на режим клавиатуры (автоматически)
-  // Для этого нужно, чтобы радио-кнопка "С клавиатуры" была выбрана
-  // Мы можем вызвать setChecked, но это вызовет сигнал toggled, который
-  // переключит стек. Для простоты - через указатель на radioKeyboard в
-  // InputPage нет публичного доступа. Добавим метод в InputPage для
-  // принудительного переключения на клавиатурный режим: Но мы не добавили такой
-  // метод. Вместо этого можно эмулировать нажатие. Однако логика описана: при
-  // нажатии "Проверить" или "Исправить" если выбран файл, загружаем файл и
-  // переключаем режим. Мы делаем это в onCheckRequested/onFixRequested, вызывая
-  // loadTextFromFile и затем устанавливая radioKeyboard->setChecked(true). Так
-  // как radioKeyboard не доступен, добавим публичный метод в InputPage: void
-  // setKeyboardMode(bool enabled) { if(enabled)
-  // radioKeyboard->setChecked(true); } Для простоты добавим этот метод сейчас.
-  // Но мы не хотим переписывать InputPage.hpp снова. Добавим в существующий:
-  // Допишем в конец public секции InputPage: void setKeyboardMode(bool
-  // enabled);
-}
-
 void MainWindow::onCheckRequested() {
-  // Если выбран режим файла, загружаем текст из файла и переключаем на
-  // клавиатуру
-  if (!inputPage->isKeyboardMode()) {
-    QString path = inputPage->getFilePath();
-    if (path.isEmpty()) {
-      QMessageBox::warning(this, "Ошибка", "Файл не выбран.");
-      return;
-    }
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-      QMessageBox::warning(this, "Ошибка", "Не удалось открыть файл.");
-      return;
-    }
-    QTextStream stream(&file);
-    stream.setEncoding(QStringConverter::Utf8);
-    QString content = stream.readAll();
-    file.close();
-    inputPage->getTextEdit()->setText(content);
-    // Переключаем на клавиатурный режим – получаем radio-кнопку через findChild
-    // Более надёжно – добавить метод в InputPage. Сделаем временное решение:
-    QRadioButton *rb = inputPage->findChild<QRadioButton *>("radioKeyboard");
-    if (rb)
-      rb->setChecked(true);
-  }
+  // Проверка орфографии текущего текста в поле ввода
   inputPage->getTextEdit()->performSpellCheck();
 }
 
 void MainWindow::onFixRequested() {
-  if (!inputPage->isKeyboardMode()) {
-    QString path = inputPage->getFilePath();
-    if (path.isEmpty()) {
-      QMessageBox::warning(this, "Ошибка", "Файл не выбран.");
-      return;
-    }
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-      QMessageBox::warning(this, "Ошибка", "Не удалось открыть файл.");
-      return;
-    }
-    QTextStream stream(&file);
-    stream.setEncoding(QStringConverter::Utf8);
-    QString content = stream.readAll();
-    file.close();
-    inputPage->getTextEdit()->setText(content);
-    QRadioButton *rb = inputPage->findChild<QRadioButton *>("radioKeyboard");
-    if (rb)
-      rb->setChecked(true);
-  }
+  // Исправление ошибок в текущем тексте
   inputPage->getTextEdit()->applyFirstCorrections();
 }
 

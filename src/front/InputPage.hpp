@@ -24,6 +24,16 @@ public:
   bool isKeyboardMode() const;
   QString getFilePath() const;
 
+  /**
+   * @brief Загружает текст из выбранного файла и переключается в режим
+   * клавиатуры
+   * @return true если загрузка успешна, false если ошибка
+   */
+  bool loadAndSwitchToKeyboard();
+
+public slots:
+  void onFileSelected(); // Выбор файла
+
 signals:
   // Сигналы, испускаемые при нажатии соответствующих кнопок
   void checkRequested();
@@ -32,10 +42,11 @@ signals:
   void clearRequested();
   void copyRequested();
   void saveRequested();
+  void fileLoadRequested(); // Новый сигнал для загрузки файла
 
 private slots:
-  void onFileSelected();  // Выбор файла
   void onSourceToggled(); // Переключение между клавиатурой и файлом
+  void onLoadFile();      // Загрузка файла
 
 private:
   void setupMainLayout();
@@ -75,6 +86,7 @@ private:
   // Страница "С файла"
   QLineEdit *filePathEdit = nullptr;
   QPushButton *btnSelectFile = nullptr;
+  QPushButton *btnLoadFile = nullptr; // Новая кнопка загрузки
 };
 
 #endif // INPUTPAGE_HPP
