@@ -1,5 +1,4 @@
 #include "MainWindow.hpp"
-#include "qlogging.h"
 #include <QApplication>
 #include <QClipboard>
 #include <QFile>
@@ -7,45 +6,44 @@
 #include <QHBoxLayout>
 #include <QMessageBox>
 #include <QTextStream>
+#include <QTimer>
 #include <QVBoxLayout>
 
 MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
   setWindowTitle("Анализатор текста");
   resize(1200, 700);
 
-  vocabulary = new Vocabulary("../vocab/russian-words/russian.txt");
-  vocabulary->loadVocab();
-
-  qDebug() << "Словарь загружен";
+  setupUI();         // Теперь только создаёт виджеты, но не layout
+  showLoadingPage(); // Создаёт layout и показывает загрузку
 
   // Создаём менеджер тем
   themeManager = new ThemeManager(this);
-
-  setupUI();
   setupThemeSelector();
-
-  // Передаём словарь в TextEditWithSpellCheck
-  inputPage->getTextEdit()->setVocabulary(vocabulary);
-
-  // Применяем начальную тему (Тёмная по умолчанию)
   applyTheme(themeManager->getThemeColors());
 
-  // Устанавливаем цвета для TextEdit
-  if (inputPage && inputPage->getTextEdit()) {
-    inputPage->getTextEdit()->setThemeColors(themeManager->getThemeColors());
-  }
+  // Создаём словарь и загружаем асинхронно
+  vocabulary = new Vocabulary("../vocab/russian-words/russian.txt", this);
+
+  // Подключаем сигналы
+  connect(vocabulary, &Vocabulary::loadStarted, this,
+          &MainWindow::onLoadStarted);
+  connect(vocabulary, &Vocabulary::loadProgress, this,
+          &MainWindow::onLoadProgress);
+  connect(vocabulary, &Vocabulary::loadFinished, this,
+          &MainWindow::onLoadFinished);
+  connect(vocabulary, &Vocabulary::loadError, this, &MainWindow::onLoadError);
+
+  vocabulary->loadVocabAsync();
 }
 
 MainWindow::~MainWindow() { delete vocabulary; }
 
 void MainWindow::setupUI() {
-  // Основной вертикальный layout
-  QVBoxLayout *mainLayout = new QVBoxLayout(this);
-  mainLayout->setContentsMargins(0, 0, 0, 0);
-  mainLayout->setSpacing(0);
+  // НЕ СОЗДАЁМ layout здесь, а только создаём виджеты
+  // Layout будет создан в showLoadingPage()
 
   // Верхняя панель для выбора темы
-  QHBoxLayout *topBar = new QHBoxLayout();
+  topBar = new QHBoxLayout();
   topBar->setContentsMargins(12, 8, 12, 8);
   topBar->addStretch();
   QLabel *themeLabel = new QLabel("Тема:", this);
@@ -54,11 +52,9 @@ void MainWindow::setupUI() {
   themeCombo->addItem("Светлая");
   topBar->addWidget(themeLabel);
   topBar->addWidget(themeCombo);
-  mainLayout->addLayout(topBar);
 
   // Страница ввода
   inputPage = new InputPage(this);
-  mainLayout->addWidget(inputPage, 1);
 
   // Подключаем сигналы InputPage к слотам MainWindow
   connect(inputPage, &InputPage::checkRequested, this,
@@ -289,5 +285,85 @@ void MainWindow::onThemeChanged(int index) {
   // Обновляем цвета в TextEditWithSpellCheck
   if (inputPage && inputPage->getTextEdit()) {
     inputPage->getTextEdit()->setThemeColors(themeManager->getThemeColors());
+  }
+}
+
+// ДОБАВИТЬ ЭТИ МЕТОДЫ В КОНЕЦ ФАЙЛА MainWindow.cpp:
+
+void MainWindow::showLoadingPage() {
+  // Создаём стек и страницы
+  stackedWidget = new QStackedWidget(this);
+  loadingPage = new LoadingPage(this);
+  mainContent = new QWidget(this);
+
+  // Создаём layout для mainContent
+  QVBoxLayout *mainContentLayout = new QVBoxLayout(mainContent);
+  mainContentLayout->setContentsMargins(0, 0, 0, 0);
+  mainContentLayout->setSpacing(0);
+
+  // Добавляем верхнюю панель
+  mainContentLayout->addLayout(topBar);
+
+  // Добавляем страницу ввода
+  mainContentLayout->addWidget(inputPage, 1);
+
+  // Добавляем страницы в стек
+  stackedWidget->addWidget(loadingPage);
+  stackedWidget->addWidget(mainContent);
+
+  // Создаём главный layout для MainWindow
+  QVBoxLayout *mainLayout = new QVBoxLayout(this);
+  mainLayout->setContentsMargins(0, 0, 0, 0);
+  mainLayout->addWidget(stackedWidget);
+
+  // Показываем страницу загрузки
+  stackedWidget->setCurrentWidget(loadingPage);
+
+  // Отключаем UI элементы
+  if (themeCombo) {
+    themeCombo->setEnabled(false);
+  }
+}
+
+void MainWindow::showMainContent() {
+  if (stackedWidget) {
+    stackedWidget->setCurrentWidget(mainContent);
+  }
+
+  // Включаем UI элементы
+  if (themeCombo) {
+    themeCombo->setEnabled(true);
+  }
+
+  // Передаём словарь в TextEdit
+  if (inputPage && inputPage->getTextEdit() && vocabulary) {
+    inputPage->getTextEdit()->setVocabulary(vocabulary);
+  }
+}
+
+void MainWindow::onLoadStarted() {
+  if (loadingPage) {
+    loadingPage->showLoading();
+  }
+}
+
+void MainWindow::onLoadProgress(int wordsLoaded) {
+  if (loadingPage && wordsLoaded > 0) {
+    loadingPage->setStatus(QString("Загружено %1 слов").arg(wordsLoaded));
+  }
+}
+
+void MainWindow::onLoadFinished() {
+  if (loadingPage) {
+    loadingPage->showSuccess("Словарь успешно загружен!");
+  }
+
+  // Небольшая задержка перед показом основного контента
+  QTimer::singleShot(500, this, &MainWindow::showMainContent);
+}
+
+void MainWindow::onLoadError(const QString &error) {
+  if (loadingPage) {
+    loadingPage->showError(error);
   }
 }

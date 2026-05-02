@@ -1,4 +1,5 @@
 #include "vocab.hpp"
+#include "qobject.h"
 #include "unistring.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -11,6 +12,10 @@
 #include <string>
 #include <unordered_set>
 
+#include <QDebug>
+#include <QElapsedTimer>
+#include <QThread>
+
 using std::getline;
 using std::ifstream;
 using std::pair;
@@ -18,7 +23,8 @@ using std::string;
 using std::unordered_set;
 using utf8::Unistring;
 
-Vocabulary::Vocabulary(const string &path) : vocab_path(path) {}
+Vocabulary::Vocabulary(const string &path, QObject *parent)
+    : QObject(parent), vocab_path(path) {}
 
 size_t Vocabulary::maxRowLength(ifstream &file) {
   size_t maxLen = 0;
@@ -34,6 +40,77 @@ size_t Vocabulary::maxRowLength(ifstream &file) {
   file.seekg(0, std::ios::beg);
 
   return maxLen;
+}
+
+void Vocabulary::loadVocabAsync() {
+  QThread *thread = QThread::create([this]() {
+    emit loadStarted();
+
+    QElapsedTimer timer;
+    timer.start();
+
+    string line;
+    Unistring uline;
+    size_t wline_hash;
+
+    ifstream file(vocab_path);
+    if (!file.is_open()) {
+      emit loadError(QString("Не удалось открыть файл словаря"));
+      return;
+    }
+
+    vocab_hash_table.clear();
+    vocab_words.clear();
+    trigram_index.clear();
+
+    vocab_hash_table.reserve(50);
+
+    file.seekg(0, std::ios::end);
+    size_t file_size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    size_t estimated_lines = file_size / 8;
+    vocab_words.reserve(estimated_lines);
+
+    int wordCount = 0;
+
+    while (getline(file, line)) {
+      if (line.empty())
+        continue;
+
+      uline = Unistring(line);
+      wline_hash = createHashCode(uline);
+
+      size_t len = uline.length();
+      if (len >= vocab_hash_table.size()) {
+        vocab_hash_table.resize(len + 1);
+      }
+
+      vocab_hash_table[len][wline_hash] = uline;
+      vocab_words.push_back(uline);
+
+      wordCount++;
+
+      // Каждые 10000 слов отправляем прогресс
+      if (wordCount % 10000 == 0) {
+        emit loadProgress(wordCount);
+      }
+    }
+
+    file.close();
+    buildTrigramIndex();
+
+    double elapsed = timer.elapsed() / 1000.0;
+    qDebug() << "Dictionary loaded:" << wordCount << "words in" << elapsed
+             << "seconds";
+
+    isLoaded_ = true;
+    emit loadProgress(wordCount);
+    emit loadFinished();
+  });
+
+  connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+  thread->start();
 }
 
 void Vocabulary::loadVocab() {

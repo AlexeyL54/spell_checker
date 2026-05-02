@@ -1,5 +1,7 @@
 #pragma once
 
+#include "qobject.h"
+#include "qtmetamacros.h"
 #include "unistring.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -9,6 +11,10 @@
 #include <sys/types.h>
 #include <unordered_map>
 #include <vector>
+
+#include <QObject>
+#include <QString>
+#include <atomic>
 
 using std::ifstream;
 using std::shared_ptr;
@@ -24,7 +30,8 @@ using utf8::Unistring;
  * проверки наличия слов и поиска исправлений для ошибочных слов
  * с использованием индексации по триграммам для высокой производительности.
  */
-class Vocabulary {
+class Vocabulary : public QObject {
+  Q_OBJECT
 
 public:
   /**
@@ -33,7 +40,7 @@ public:
    * Инициализирует путь к файлу словаря и настраивает параметры
    * @param path Путь к файлу словаря
    */
-  Vocabulary(const string &path);
+  Vocabulary(const string &path, QObject *parent = nullptr);
 
   /**
    * @brief Загрузить словарь из файла
@@ -42,6 +49,10 @@ public:
    * и создаёт индекс триграмм для эффективного поиска исправлений
    */
   void loadVocab();
+
+  void loadVocabAsync();
+
+  bool isLoaded() const { return isLoaded_; }
 
   /**
    * @brief Создать хэш код для строки (алгоритм DJB2)
@@ -74,7 +85,15 @@ public:
    */
   std::vector<Unistring> checkWordSpelling(const Unistring &word);
 
+signals:
+  void loadStarted();
+  void loadProgress(int wordsLoaded); // Только количество загруженных слов
+  void loadFinished();
+  void loadError(const QString &error);
+
 private:
+  std::atomic<bool> isLoaded_{false};
+
   vector<unordered_map<size_t, Unistring>>
       vocab_hash_table; ///< Хэш-таблица строк словаря (индекс - длина слова)
   ///
