@@ -546,13 +546,36 @@ bool utf8::operator!=(const Unistring &s1, const char *s2) {
  * 1).
  */
 int utf8::unichar_to_int(const Unistring &ch) {
-  if (ch.length() > 1) {
+  if (ch.length() != 1) {
     return -1;
   }
 
-  unsigned char first_byte = ch.to_string()[0];
-  unsigned char second_byte = ch.to_string()[1];
-  int code = (first_byte << 8) | second_byte;
+  std::string byte_str = ch.to_string();
+  const unsigned char *bytes =
+      reinterpret_cast<const unsigned char *>(byte_str.c_str());
 
-  return code;
+  // Декодируем UTF-8 символ в код Unicode
+  if ((bytes[0] & 0x80) == 0) {
+    // 1 байт: 0xxxxxxx
+    return bytes[0];
+  } else if ((bytes[0] & 0xE0) == 0xC0) {
+    // 2 байта: 110xxxxx 10xxxxxx
+    if (byte_str.length() < 2)
+      return -1;
+    return ((bytes[0] & 0x1F) << 6) | (bytes[1] & 0x3F);
+  } else if ((bytes[0] & 0xF0) == 0xE0) {
+    // 3 байта: 1110xxxx 10xxxxxx 10xxxxxx
+    if (byte_str.length() < 3)
+      return -1;
+    return ((bytes[0] & 0x0F) << 12) | ((bytes[1] & 0x3F) << 6) |
+           (bytes[2] & 0x3F);
+  } else if ((bytes[0] & 0xF8) == 0xF0) {
+    // 4 байта: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+    if (byte_str.length() < 4)
+      return -1;
+    return ((bytes[0] & 0x07) << 18) | ((bytes[1] & 0x3F) << 12) |
+           ((bytes[2] & 0x3F) << 6) | (bytes[3] & 0x3F);
+  }
+
+  return -1;
 }

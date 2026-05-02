@@ -190,25 +190,53 @@ std::vector<Unistring> Vocabulary::checkWordSpelling(const Unistring &word) {
  */
 uint32_t Vocabulary::getLevensteinDistance(const Unistring &word1,
                                            const Unistring &word2) {
-  size_t m = word1.length();
-  size_t n = word2.length();
+  const size_t m = word1.length();
+  const size_t n = word2.length();
 
-  // Optimized to use only two rows instead of full matrix
-  std::vector<uint32_t> prev(n + 1, 0);
-  std::vector<uint32_t> curr(n + 1, 0);
-
-  for (size_t j = 0; j <= n; j++) {
-    prev[j] = j;
+  // Быстрая проверка по длине
+  const int length_diff = static_cast<int>(m) - static_cast<int>(n);
+  if (std::abs(length_diff) > MAXLEVENSTEINDIST) {
+    return MAXLEVENSTEINDIST + 1;
   }
 
-  for (size_t i = 1; i <= m; i++) {
+  // Оптимизируем порядок (меньшая строка - первая)
+  if (m > n) {
+    return getLevensteinDistance(word2, word1);
+  }
+
+  // Используем только два ряда
+  std::vector<uint32_t> prev(n + 1), curr(n + 1);
+  for (size_t j = 0; j <= n; ++j)
+    prev[j] = j;
+
+  for (size_t i = 1; i <= m; ++i) {
     curr[0] = i;
-    for (size_t j = 1; j <= n; j++) {
-      uint32_t cost = (word1[i - 1] != word2[j - 1]) ? 1 : 0;
-      curr[j] = std::min({curr[j - 1] + 1,      // deletion
-                          prev[j] + 1,          // insertion
-                          prev[j - 1] + cost}); // substitution or match
+    uint32_t min_in_row = curr[0];
+
+    // Оптимизация: вычисляем только необходимый диапазон
+    size_t j_start = (i > MAXLEVENSTEINDIST) ? i - MAXLEVENSTEINDIST : 1;
+    size_t j_end = std::min(n, i + MAXLEVENSTEINDIST);
+
+    // Заполняем границы большими значениями
+    for (size_t j = 1; j < j_start && j <= n; ++j) {
+      curr[j] = MAXLEVENSTEINDIST + 1;
     }
+
+    for (size_t j = j_start; j <= j_end; ++j) {
+      const uint32_t cost = (word1[i - 1] != word2[j - 1]) ? 1 : 0;
+      curr[j] = std::min({curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost});
+      if (curr[j] < min_in_row)
+        min_in_row = curr[j];
+    }
+
+    for (size_t j = j_end + 1; j <= n; ++j) {
+      curr[j] = MAXLEVENSTEINDIST + 1;
+    }
+
+    if (min_in_row > MAXLEVENSTEINDIST) {
+      return min_in_row;
+    }
+
     std::swap(prev, curr);
   }
 
