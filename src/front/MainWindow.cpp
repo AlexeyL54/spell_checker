@@ -286,6 +286,11 @@ void MainWindow::onThemeChanged(int index) {
   if (inputPage && inputPage->getTextEdit()) {
     inputPage->getTextEdit()->setThemeColors(themeManager->getThemeColors());
   }
+
+  // Обновляем цвета в InputPage (для кнопки инструкции)
+  if (inputPage) {
+    inputPage->updateThemeColors(themeManager->getThemeColors());
+  }
 }
 
 // ДОБАВИТЬ ЭТИ МЕТОДЫ В КОНЕЦ ФАЙЛА MainWindow.cpp:

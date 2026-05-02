@@ -31,6 +31,8 @@ public:
    */
   bool loadAndSwitchToKeyboard();
 
+  void updateThemeColors(const ThemeColors &colors);
+
 public slots:
   void onFileSelected(); // Выбор файла
 
@@ -56,8 +58,12 @@ private:
   void setupInputChoice();
   void setupKeyboardPage();
   void setupFilePage();
-  void setupButtons(); // Новые общие кнопки
+  void setupButtons();
   void setupConnections();
+  void setupInstructionButton();
+  void showInstruction();
+
+  ThemeColors currentColors_;
 
   QVBoxLayout *mainLayout = nullptr;
   QHBoxLayout *contentRow = nullptr;
@@ -86,7 +92,9 @@ private:
   // Страница "С файла"
   QLineEdit *filePathEdit = nullptr;
   QPushButton *btnSelectFile = nullptr;
-  QPushButton *btnLoadFile = nullptr; // Новая кнопка загрузки
+  QPushButton *btnLoadFile = nullptr;
+
+  QPushButton *btnInstruction = nullptr;
 };
 
 #endif // INPUTPAGE_HPP

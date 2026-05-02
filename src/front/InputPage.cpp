@@ -1,4 +1,5 @@
 #include "InputPage.hpp"
+#include "InstructionText.hpp"
 #include <QApplication>
 #include <QClipboard>
 #include <QDir>
@@ -16,6 +17,7 @@ InputPage::InputPage(QWidget *parent) : QWidget(parent) {
   setupKeyboardPage();
   setupFilePage();
   setupButtons();
+  setupInstructionButton();
   setupConnections();
 
   contentLayout->addWidget(stack, 1);
@@ -228,5 +230,131 @@ void InputPage::onSourceToggled() {
     stack->setCurrentIndex(0);
   } else {
     stack->setCurrentIndex(1);
+  }
+}
+
+void InputPage::setupInstructionButton() {
+  // Создаём кнопку с текстом "?"
+  btnInstruction = new QPushButton("?", this);
+
+  // Делаем кнопку идеально круглой (ширина = высота)
+  int buttonSize = 28;
+  btnInstruction->setFixedSize(buttonSize, buttonSize);
+  btnInstruction->setCursor(Qt::PointingHandCursor);
+
+  // Стилизуем кнопку как круг
+  btnInstruction->setStyleSheet(
+      QString("QPushButton {"
+              "  background-color: %1;"
+              "  color: %2;"
+              "  font-size: 16px;"
+              "  font-weight: bold;"
+              "  border: 1px solid %3;"
+              "  border-radius: %4px;"
+              "  padding: 0px;"
+              "}"
+              "QPushButton:hover {"
+              "  background-color: %5;"
+              "}"
+              "QPushButton:pressed {"
+              "  background-color: %6;"
+              "}")
+          .arg(currentColors_.primary.name(),     // %1 - фон
+               currentColors_.textPrimary.name(), // %2 - цвет текста
+               currentColors_.border.name(),      // %3 - цвет границы
+               QString::number(buttonSize / 2), // %4 - радиус (половина ширины)
+               currentColors_.hover.name(),     // %5 - при наведении
+               currentColors_.pressed.name())); // %6 - при нажатии
+
+  connect(btnInstruction, &QPushButton::clicked, this,
+          &InputPage::showInstruction);
+
+  // Добавляем кнопку в ЛЕВЫЙ верхний угол
+  QHBoxLayout *topBarLayout = new QHBoxLayout();
+  topBarLayout->addWidget(btnInstruction);      // Кнопка слева
+  topBarLayout->addStretch();                   // Растяжка справа
+  topBarLayout->setContentsMargins(0, 0, 0, 8); // Отступ снизу 8px
+
+  QWidget *topBarWidget = new QWidget(contentColumn);
+  topBarWidget->setLayout(topBarLayout);
+  topBarWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+  // Вставляем в начало contentLayout (после отступов)
+  contentLayout->insertWidget(0, topBarWidget);
+}
+
+void InputPage::showInstruction() {
+  QDialog *dialog = new QDialog(this);
+  dialog->setWindowTitle("Инструкция по использованию");
+  dialog->setMinimumWidth(600);
+  dialog->setMinimumHeight(500);
+
+  QVBoxLayout *layout = new QVBoxLayout(dialog);
+
+  // Используем QTextEdit для лучшего отображения форматированного текста
+  QTextEdit *textEdit = new QTextEdit(dialog);
+  textEdit->setPlainText(getInstructionText());
+  textEdit->setReadOnly(true);
+  textEdit->setFrameShape(QFrame::NoFrame);
+
+  // Настраиваем шрифт для моноширинного отображения
+  QFont font;
+  font.setFamily("Consolas");
+  font.setPointSize(10);
+  textEdit->setFont(font);
+
+  // Настраиваем цвета для читаемости
+  QPalette pal = textEdit->palette();
+  pal.setColor(QPalette::Base, QColor(30, 30, 35));
+  pal.setColor(QPalette::Text, QColor(220, 220, 220));
+  textEdit->setPalette(pal);
+
+  layout->addWidget(textEdit);
+
+  QHBoxLayout *buttonLayout = new QHBoxLayout();
+  QPushButton *btnClose = new QPushButton("Закрыть", dialog);
+  btnClose->setCursor(Qt::PointingHandCursor);
+  btnClose->setFixedWidth(100);
+  buttonLayout->addStretch();
+  buttonLayout->addWidget(btnClose);
+  buttonLayout->addStretch();
+  layout->addLayout(buttonLayout);
+
+  connect(btnClose, &QPushButton::clicked, dialog, &QDialog::accept);
+
+  dialog->exec();
+  delete dialog;
+}
+
+void InputPage::updateThemeColors(const ThemeColors &colors) {
+  currentColors_ = colors; // Нужно добавить поле в класс
+
+  // Обновляем стиль кнопки инструкции, если она существует
+  if (btnInstruction) {
+    int buttonSize = btnInstruction->width();
+    btnInstruction->setStyleSheet(
+        QString("QPushButton {"
+                "  background-color: %1;"
+                "  color: %2;"
+                "  font-size: 16px;"
+                "  font-weight: bold;"
+                "  border: 1px solid %3;"
+                "  border-radius: %4px;"
+                "  padding: 0px;"
+                "}"
+                "QPushButton:hover {"
+                "  background-color: %5;"
+                "}"
+                "QPushButton:pressed {"
+                "  background-color: %6;"
+                "}")
+            .arg(colors.primary.name(), colors.textPrimary.name(),
+                 colors.border.name(), QString::number(buttonSize / 2),
+                 colors.hover.name(), colors.pressed.name()));
+  }
+
+  // Обновляем TextEdit с новыми цветами
+  if (textInput) {
+    textInput->setThemeColors(colors);
   }
 }
