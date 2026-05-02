@@ -388,7 +388,7 @@ size_t Unistring::find(const Unistring &substr, size_t start_index) {
  * Supports basic Cyrillic characters (A-Ya, Yo, I, Ye) and ASCII.
  * @return A new Unistring object with lowercase letters.
  */
-Unistring Unistring::to_lower() {
+Unistring Unistring::to_lower() const {
   std::string lower_str = value;
   size_t len = value.length();
 

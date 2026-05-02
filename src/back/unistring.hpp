@@ -49,7 +49,7 @@ public:
    * Supports basic Cyrillic characters (A-Ya, Yo, I, Ye) and ASCII.
    * @return A new Unistring object with lowercase letters.
    */
-  Unistring to_lower();
+  Unistring to_lower() const;
 
   /**
    * @brief Returns the number of characters (code points) in the string.
