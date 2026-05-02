@@ -92,9 +92,9 @@ void Vocabulary::loadVocabAsync() {
       wordCount++;
 
       // Каждые 10000 слов отправляем прогресс
-      if (wordCount % 10000 == 0) {
-        emit loadProgress(wordCount);
-      }
+      /*      if (wordCount % 10000 == 0) {
+              emit loadProgress(wordCount);
+            }*/
     }
 
     file.close();

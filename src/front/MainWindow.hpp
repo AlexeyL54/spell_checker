@@ -26,7 +26,7 @@ private slots:
   void onThemeChanged(int index);
 
   void onLoadStarted();
-  void onLoadProgress(int wordsLoaded);
+  // void onLoadProgress(int wordsLoaded);
   void onLoadFinished();
   void onLoadError(const QString &error);
 

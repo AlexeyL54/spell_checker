@@ -27,8 +27,8 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
   // Подключаем сигналы
   connect(vocabulary, &Vocabulary::loadStarted, this,
           &MainWindow::onLoadStarted);
-  connect(vocabulary, &Vocabulary::loadProgress, this,
-          &MainWindow::onLoadProgress);
+  /*connect(vocabulary, &Vocabulary::loadProgress, this,
+          &MainWindow::onLoadProgress);*/
   connect(vocabulary, &Vocabulary::loadFinished, this,
           &MainWindow::onLoadFinished);
   connect(vocabulary, &Vocabulary::loadError, this, &MainWindow::onLoadError);
@@ -347,11 +347,11 @@ void MainWindow::onLoadStarted() {
   }
 }
 
-void MainWindow::onLoadProgress(int wordsLoaded) {
+/*void MainWindow::onLoadProgress(int wordsLoaded) {
   if (loadingPage && wordsLoaded > 0) {
     loadingPage->setStatus(QString("Загружено %1 слов").arg(wordsLoaded));
   }
-}
+}*/
 
 void MainWindow::onLoadFinished() {
   if (loadingPage) {

@@ -53,12 +53,12 @@ void LoadingPage::showError(const QString &message) {
 }
 
 void LoadingPage::showSuccess(const QString &message) {
-  titleLabel->setText("Готово!");
+  // titleLabel->setText("Готово!");
   progressBar->setRange(0, 100);
   progressBar->setValue(100);
   progressBar->setTextVisible(false);
-  statusLabel->setStyleSheet("color: #66ff66;");
-  statusLabel->setText(message);
+  // statusLabel->setStyleSheet("color: #66ff66;");
+  // statusLabel->setText(message);
 }
 
 void LoadingPage::setStatus(const QString &status) {
