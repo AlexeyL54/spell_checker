@@ -191,7 +191,7 @@ void TextEditWithSpellCheck::highlightFixedPositions() {
   fixedFormat.setUnderlineStyle(QTextCharFormat::WaveUnderline);
   fixedFormat.setUnderlineColor(QColor(100, 150, 255)); // мягкий синий
 
-  for (const auto &pos : fixedPositions_) {
+  for (const std::pair<int, int> &pos : fixedPositions_) {
     applyFormatToRange(pos.first, pos.second, fixedFormat);
   }
 }
@@ -215,40 +215,45 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
 
   QRegularExpressionMatchIterator it = wordRegex.globalMatch(text);
 
-  qDebug() << "Сейчас будем перебирать слова через it.hasNext\n";
   while (it.hasNext()) {
     QRegularExpressionMatch match = it.next();
     int start = match.capturedStart();
     int length = match.capturedLength();
     QString word = match.captured();
 
-    qDebug() << "word: " << word << "\n";
+    qDebug() << "word: " << word;
+
     // Пропускаем игнорируемые слова
     if (isWordIgnored(word))
       continue;
 
-    // Преобразуем QString в UTF-8 std::string и затем в Unistring
-    std::string utf8Word = word.toUtf8().toStdString();
+    QString lowerWord = word.toLower();
+    std::string utf8Word = lowerWord.toUtf8().toStdString();
     utf8::Unistring ustr(utf8Word);
 
-    try {
-      if (vocab_->isInVocab(ustr)) {
-        qDebug() << "ингорируем слово" << "\n";
-        continue; // слово есть в словаре
-      }
+    // Проверяем наличие в словаре
+    if (vocab_->isInVocab(ustr)) {
+      qDebug() << "слово есть в словаре, пропускаем";
+      continue;
+    }
 
-      qDebug() << "получаем исправления" << "\n";
-      // Получаем исправления
+    qDebug() << "слово не найдено, ищем исправления для: " << ustr.to_string();
+
+    try {
       std::vector<utf8::Unistring> suggestionsUtf8 =
           vocab_->checkWordSpelling(ustr);
+
       QVector<QString> suggestions;
-      for (const auto &su : suggestionsUtf8) {
+      for (const Unistring &su : suggestionsUtf8) {
         QString sug = QString::fromUtf8(su.to_string().c_str());
         suggestions.append(sug);
+        qDebug() << "предложение: " << sug;
       }
 
       if (!suggestions.isEmpty()) {
         result.append({start, length, word, suggestions});
+      } else {
+        qDebug() << "нет предложений для: " << word;
       }
     } catch (const std::exception &e) {
       qDebug() << "Exception in findErrors:" << e.what();
@@ -259,6 +264,7 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
     }
   }
 
+  qDebug() << "Найдено ошибок:" << result.size();
   return result;
 }
 
