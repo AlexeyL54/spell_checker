@@ -107,13 +107,6 @@ private:
                                  const Unistring &word2);
 
   /**
-   * @brief Вычислить количество строк в файле
-   * @param file Ссылка на поток файла
-   * @return Количество строк в файле
-   */
-  size_t rowsTotal(ifstream &file);
-
-  /**
    * @brief Вычислить максимальную длину строки в файле
    * @param file Ссылка на поток файла
    * @return Максимальную длину строки в символах

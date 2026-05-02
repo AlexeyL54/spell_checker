@@ -20,20 +20,6 @@ using utf8::Unistring;
 
 Vocabulary::Vocabulary(const string &path) : vocab_path(path) {}
 
-size_t Vocabulary::rowsTotal(ifstream &file) {
-  size_t rows = 0;
-  string line;
-
-  while (getline(file, line)) {
-    rows++;
-  }
-
-  file.clear();
-  file.seekg(0, std::ios::beg);
-
-  return rows;
-}
-
 size_t Vocabulary::maxRowLength(ifstream &file) {
   size_t maxLen = 0;
   std::string line;
@@ -57,7 +43,6 @@ void Vocabulary::loadVocab() {
 
   ifstream file(vocab_path);
   if (!file.is_open()) {
-    file.close();
     return;
   }
 
@@ -65,23 +50,36 @@ void Vocabulary::loadVocab() {
   vocab_words.clear();
   trigram_index.clear();
 
-  size_t dif_len_total = maxRowLength(file);
-  vocab_hash_table.resize(dif_len_total + 1);
+  // Вместо этого будем расширять вектор по мере необходимости
+  vocab_hash_table.reserve(50); // Начальная емкость
+
+  // Быстрый подсчет строк для резервирования памяти
+  file.seekg(0, std::ios::end);
+  size_t file_size = file.tellg();
+  file.seekg(0, std::ios::beg);
+
+  // Приблизительное количество строк (консервативная оценка)
+  size_t estimated_lines = file_size / 8; // Средняя длина слова ~8 байт
+  vocab_words.reserve(estimated_lines);
 
   while (getline(file, line)) {
     uline = Unistring(line);
     wline_hash = createHashCode(uline);
 
-    vocab_hash_table[uline.length()][wline_hash] = uline;
+    size_t len = uline.length();
+    if (len >= vocab_hash_table.size()) {
+      vocab_hash_table.resize(len + 1);
+    }
+
+    vocab_hash_table[len][wline_hash] = uline;
     vocab_words.push_back(uline);
   }
 
   file.close();
-
   buildTrigramIndex();
 }
 
-size_t Vocabulary::createHashCode(const Unistring &str) {
+/*size_t Vocabulary::createHashCode(const Unistring &str) {
   size_t hash = 5381;
   int length = str.length();
 
@@ -89,6 +87,15 @@ size_t Vocabulary::createHashCode(const Unistring &str) {
     hash = ((hash << 5) + hash) + utf8::unichar_to_int(str[i]);
   }
 
+  return hash;
+}*/
+
+size_t Vocabulary::createHashCode(const Unistring &str) {
+  size_t hash = 5381;
+  const string &bytes = str.to_string();
+  for (unsigned char c : bytes) {
+    hash = ((hash << 5) + hash) + c;
+  }
   return hash;
 }
 

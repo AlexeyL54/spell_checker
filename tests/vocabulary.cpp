@@ -8,6 +8,9 @@
 #include <math.h>
 #include <string>
 
+#include <chrono>
+#include <iostream>
+
 using std::cerr;
 using std::endl;
 using std::string;
@@ -28,7 +31,7 @@ const vector<Unistring> words = {
  * @param str ссылка на строку
  * @return хэш код
  */
-size_t createHashCode(const Unistring &str) {
+/*size_t createHashCode(const Unistring &str) {
   size_t hash = 5381;
   int length = str.length();
 
@@ -36,6 +39,15 @@ size_t createHashCode(const Unistring &str) {
     hash = ((hash << 5) + hash) + utf8::unichar_to_int(str[i]);
   }
 
+  return hash;
+}*/
+
+size_t createHashCode(const Unistring &str) {
+  size_t hash = 5381;
+  const string &bytes = str.to_string();
+  for (unsigned char c : bytes) {
+    hash = ((hash << 5) + hash) + c;
+  }
   return hash;
 }
 
@@ -142,4 +154,45 @@ TEST(VOCABULARY, checkWordSpelling) {
 
   auto corrections4 = vocab.checkWordSpelling("класс");
   EXPECT_TRUE(corrections4.empty());
+}
+
+TEST(VOCABULARY, realPerformanceBenchmark) {
+  // Замените на путь к вашему реальному словарю
+  const string real_dict_path = "../../vocab/russian-words/russian.txt";
+
+  // Проверяем, существует ли файл
+  std::ifstream check(real_dict_path);
+  if (!check.is_open()) {
+    std::cout << "Dictionary not found at: " << real_dict_path << std::endl;
+    std::cout << "Skipping performance test" << std::endl;
+    return;
+  }
+  check.close();
+
+  // Подсчитываем количество строк в словаре
+  size_t word_count = 0;
+  std::string line;
+  std::ifstream count_file(real_dict_path);
+  while (std::getline(count_file, line)) {
+    word_count++;
+  }
+  count_file.close();
+
+  std::cout << "\n=== Performance Test ===" << std::endl;
+  std::cout << "Dictionary size: " << word_count << " words" << std::endl;
+
+  auto start = std::chrono::high_resolution_clock::now();
+
+  Vocabulary vocab(real_dict_path);
+  vocab.loadVocab();
+
+  std::chrono::time_point end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<long, std::ratio<1, 1000>> duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+  std::cout << "Load time: " << duration.count() << " ms ("
+            << (duration.count() / 1000.0) << " seconds)" << std::endl;
+  std::cout << "Speed: " << (word_count * 1000.0 / duration.count())
+            << " words/second" << std::endl;
+  std::cout << "========================\n" << std::endl;
 }
