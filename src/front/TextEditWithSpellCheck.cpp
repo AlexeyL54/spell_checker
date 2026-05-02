@@ -1,7 +1,7 @@
 #include "TextEditWithSpellCheck.hpp"
 #include "../back/unistring.hpp"
 #include "../back/vocab.hpp"
-#include "qlogging.h"
+#include "ThemeManager.hpp"
 #include <QApplication>
 #include <QClipboard>
 #include <QDebug>
@@ -22,6 +22,11 @@ TextEditWithSpellCheck::~TextEditWithSpellCheck() {}
 
 void TextEditWithSpellCheck::setVocabulary(Vocabulary *vocab) {
   vocab_ = vocab;
+}
+
+void TextEditWithSpellCheck::setThemeColors(const ThemeColors &colors) {
+  currentColors_ = colors;
+  updateColors();
 }
 
 void TextEditWithSpellCheck::performSpellCheck() {
@@ -179,7 +184,7 @@ void TextEditWithSpellCheck::clearSpellCheck() {
 void TextEditWithSpellCheck::highlightErrors() {
   QTextCharFormat errorFormat;
   errorFormat.setUnderlineStyle(QTextCharFormat::WaveUnderline);
-  errorFormat.setUnderlineColor(Qt::red);
+  errorFormat.setUnderlineColor(currentColors_.spellError);
 
   for (const SpellError &err : errors_) {
     applyFormatToRange(err.start, err.length, errorFormat);
@@ -189,7 +194,7 @@ void TextEditWithSpellCheck::highlightErrors() {
 void TextEditWithSpellCheck::highlightFixedPositions() {
   QTextCharFormat fixedFormat;
   fixedFormat.setUnderlineStyle(QTextCharFormat::WaveUnderline);
-  fixedFormat.setUnderlineColor(QColor(100, 150, 255)); // мягкий синий
+  fixedFormat.setUnderlineColor(currentColors_.spellFixed);
 
   for (const std::pair<int, int> &pos : fixedPositions_) {
     applyFormatToRange(pos.first, pos.second, fixedFormat);
@@ -338,4 +343,14 @@ void TextEditWithSpellCheck::clearFormats() {
   doc->blockSignals(true);
   cursor.mergeCharFormat(defaultFormat);
   doc->blockSignals(false);
+}
+
+void TextEditWithSpellCheck::updateColors() {
+  // Перерисовываем ошибки с новыми цветами, если они есть
+  if (!errors_.isEmpty()) {
+    highlightErrors();
+  }
+  if (!fixedPositions_.isEmpty()) {
+    highlightFixedPositions();
+  }
 }

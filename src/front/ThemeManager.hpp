@@ -26,6 +26,10 @@ struct ThemeColors {
   QColor hover;    // При наведении
   QColor pressed;  // При нажатии
   QColor selected; // Выбранный элемент
+
+  // Цвета для проверки орфографии
+  QColor spellError; // Цвет подчёркивания орфографической ошибки
+  QColor spellFixed; // Цвет подчёркивания исправленного слова
 };
 
 class ThemeManager : public QObject {

@@ -77,14 +77,20 @@ public:
 private:
   vector<unordered_map<size_t, Unistring>>
       vocab_hash_table; ///< Хэш-таблица строк словаря (индекс - длина слова)
+  ///
   vector<Unistring> vocab_words; ///< Плоский список всех слов словаря
   unordered_map<uint64_t, vector<size_t>>
+
       trigram_index; ///< Индекс триграмм: триграмма -> список индексов слов
+
   const string vocab_path; ///< Путь к файлу словаря
+
   const uint32_t MAXLEVENSTEINDIST =
       3; ///< Максимальное допустимое расстояние Левенштейна
+
   const uint16_t MAX_CANDIDATES =
       100; ///< Максимальное количество кандидатов для проверки
+
   const uint8_t MIN_TRIGRAM_MATCHES =
       2; ///< Минимальное количество совпадающих триграмм для кандидата
 

@@ -39,6 +39,10 @@ ThemeColors ThemeManager::loadTheme(Theme theme) const {
     colors.pressed = QColor(0, 92, 153);   // #005c99
     colors.selected = QColor(0, 102, 179); // #0066b3
 
+    // Цвета для проверки орфографии
+    colors.spellError = QColor(255, 80, 80);  // #ff5050
+    colors.spellFixed = QColor(80, 180, 255); // #50b4ff
+
   } else {
     // Светлая тема
     colors.background = QColor(243, 243, 243);  // #f3f3f3
@@ -57,6 +61,10 @@ ThemeColors ThemeManager::loadTheme(Theme theme) const {
     colors.hover = QColor(240, 240, 240);  // #f0f0f0
     colors.pressed = QColor(0, 82, 143);   // #00528f
     colors.selected = QColor(0, 102, 179); // #0066b3
+
+    // Цвета для проверки орфографии
+    colors.spellError = QColor(255, 50, 50); // #ff3232
+    colors.spellFixed = QColor(0, 120, 215); // #0078d7
   }
 
   return colors;
