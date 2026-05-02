@@ -42,16 +42,9 @@ void MainWindow::setupUI() {
   // НЕ СОЗДАЁМ layout здесь, а только создаём виджеты
   // Layout будет создан в showLoadingPage()
 
-  // Верхняя панель для выбора темы
-  topBar = new QHBoxLayout();
-  topBar->setContentsMargins(12, 8, 12, 8);
-  topBar->addStretch();
-  QLabel *themeLabel = new QLabel("Тема:", this);
-  themeCombo = new QComboBox(this);
-  themeCombo->addItem("Тёмная");
-  themeCombo->addItem("Светлая");
-  topBar->addWidget(themeLabel);
-  topBar->addWidget(themeCombo);
+  // Верхняя панель будет создана в showMainContent()
+  topBar = nullptr;
+  themeCombo = nullptr;
 
   // Страница ввода
   inputPage = new InputPage(this);
@@ -129,6 +122,27 @@ void MainWindow::applyTheme(const ThemeColors &colors) {
                            "  background-color: %7;"
                            "  color: %8;"
                            "  border-color: %9;"
+                           "}"
+
+                           // Специальный стиль для кнопки инструкции
+                           "QPushButton#instructionButton {"
+                           "  background-color: %3;"
+                           "  color: %2;"
+                           "  font-size: 16px;"
+                           "  font-weight: bold;"
+                           "  border: 1px solid %4;"
+                           "  border-radius: 14px;"
+                           "  padding: 0px;"
+                           "  min-width: 28px;"
+                           "  max-width: 28px;"
+                           "  min-height: 28px;"
+                           "  max-height: 28px;"
+                           "}"
+                           "QPushButton#instructionButton:hover {"
+                           "  background-color: %5;"
+                           "}"
+                           "QPushButton#instructionButton:pressed {"
+                           "  background-color: %6;"
                            "}"
 
                            // Поля ввода
@@ -293,8 +307,6 @@ void MainWindow::onThemeChanged(int index) {
   }
 }
 
-// ДОБАВИТЬ ЭТИ МЕТОДЫ В КОНЕЦ ФАЙЛА MainWindow.cpp:
-
 void MainWindow::showLoadingPage() {
   // Создаём стек и страницы
   stackedWidget = new QStackedWidget(this);
@@ -306,8 +318,29 @@ void MainWindow::showLoadingPage() {
   mainContentLayout->setContentsMargins(0, 0, 0, 0);
   mainContentLayout->setSpacing(0);
 
-  // Добавляем верхнюю панель
-  mainContentLayout->addLayout(topBar);
+  // Создаём верхнюю панель
+  QHBoxLayout *topBarLayout = new QHBoxLayout();
+  topBarLayout->setContentsMargins(12, 8, 12, 8);
+
+  // Добавляем кнопку инструкции из InputPage
+  QPushButton *instructionBtn = inputPage->getInstructionButton();
+  if (instructionBtn) {
+    topBarLayout->addWidget(instructionBtn);
+  }
+
+  topBarLayout->addStretch();
+
+  QLabel *themeLabel = new QLabel("Тема:", this);
+  themeCombo = new QComboBox(this);
+  themeCombo->addItem("Тёмная");
+  themeCombo->addItem("Светлая");
+  topBarLayout->addWidget(themeLabel);
+  topBarLayout->addWidget(themeCombo);
+
+  mainContentLayout->addLayout(topBarLayout);
+
+  // Сохраняем указатели для дальнейшего использования
+  topBar = topBarLayout;
 
   // Добавляем страницу ввода
   mainContentLayout->addWidget(inputPage, 1);
@@ -328,6 +361,11 @@ void MainWindow::showLoadingPage() {
   if (themeCombo) {
     themeCombo->setEnabled(false);
   }
+
+  // Отключаем кнопку инструкции во время загрузки
+  if (instructionBtn) {
+    instructionBtn->setEnabled(false);
+  }
 }
 
 void MainWindow::showMainContent() {
@@ -338,6 +376,12 @@ void MainWindow::showMainContent() {
   // Включаем UI элементы
   if (themeCombo) {
     themeCombo->setEnabled(true);
+  }
+
+  // Включаем кнопку инструкции
+  QPushButton *instructionBtn = inputPage->getInstructionButton();
+  if (instructionBtn) {
+    instructionBtn->setEnabled(true);
   }
 
   // Передаём словарь в TextEdit
@@ -351,12 +395,6 @@ void MainWindow::onLoadStarted() {
     loadingPage->showLoading();
   }
 }
-
-/*void MainWindow::onLoadProgress(int wordsLoaded) {
-  if (loadingPage && wordsLoaded > 0) {
-    loadingPage->setStatus(QString("Загружено %1 слов").arg(wordsLoaded));
-  }
-}*/
 
 void MainWindow::onLoadFinished() {
   if (loadingPage) {

@@ -25,6 +25,11 @@ public:
   QString getFilePath() const;
 
   /**
+   * @brief Возвращает указатель на кнопку инструкции
+   */
+  QPushButton *getInstructionButton() const { return btnInstruction; }
+
+  /**
    * @brief Загружает текст из выбранного файла и переключается в режим
    * клавиатуры
    * @return true если загрузка успешна, false если ошибка
@@ -32,6 +37,11 @@ public:
   bool loadAndSwitchToKeyboard();
 
   void updateThemeColors(const ThemeColors &colors);
+
+  /**
+   * @brief Возвращает указатель на верхнюю панель для интеграции в MainWindow
+   */
+  QWidget *getTopBarWidget() const { return topBarWidget; }
 
 public slots:
   void onFileSelected(); // Выбор файла
@@ -62,6 +72,7 @@ private:
   void setupConnections();
   void setupInstructionButton();
   void showInstruction();
+  void updateInstructionButtonStyle();
 
   ThemeColors currentColors_;
 
@@ -95,6 +106,8 @@ private:
   QPushButton *btnLoadFile = nullptr;
 
   QPushButton *btnInstruction = nullptr;
+  QWidget *topBarWidget =
+      nullptr; // Сохраняем указатель на виджет верхней панели
 };
 
 #endif // INPUTPAGE_HPP
