@@ -1,5 +1,14 @@
 # SpellChecker
 
+<div align="center">
+  <img src="img/from_keyboard.png"/>
+  <img src="img/from_keyboard_light.png"/>
+  <img src="img/from_file.png"/>
+  <img src="img/from_file_light.png"/>
+  <img src="img/instruction.png"/>
+  <img src="img/loading.png"/>
+</div>
+
 Программа для проверки орфографии русского текста с возможностью автоматического и интерактивного исправления ошибок. Поддерживает работу с текстом из файла или вводом с клавиатуры, имеет светлую и тёмную темы.
 
 ## Особенности
