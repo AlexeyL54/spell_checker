@@ -80,9 +80,11 @@ void TextEditWithSpellCheck::applyFirstCorrections() {
       continue;
 
     QString newWord = err.suggestions.first();
-    replaceWordAt(err.start, err.length, newWord);
+    // Сохраняем регистр оригинального слова
+    QString correctedWord = preserveCase(err.word, newWord);
+    replaceWordAt(err.start, err.length, correctedWord);
     // Запоминаем позицию замены
-    fixedPositions_.append(qMakePair(err.start, newWord.length()));
+    fixedPositions_.append(qMakePair(err.start, correctedWord.length()));
   }
 
   // Очищаем все форматы и применяем мягкое выделение к исправленным словам
@@ -140,10 +142,12 @@ void TextEditWithSpellCheck::mousePressEvent(QMouseEvent *event) {
         // Показываем меню с вариантами
         QMenu menu;
         for (const QString &sugg : err.suggestions) {
+          // Захватываем err и sugg по значению для лямбды
           menu.addAction(sugg, [this, err, sugg]() {
-            // Заменяем слово на выбранный вариант
+            // Сохраняем регистр оригинального слова
+            QString correctedWord = preserveCase(err.word, sugg);
             selfUpdating_ = true;
-            replaceWordAt(err.start, err.length, sugg);
+            replaceWordAt(err.start, err.length, correctedWord);
             // После замены перезапускаем проверку для обновления выделения
             performSpellCheck();
             selfUpdating_ = false;
@@ -174,6 +178,41 @@ void TextEditWithSpellCheck::onTextChanged() {
   // Но не сбрасываем originalText_, чтобы можно было отменить изменения
   clearSpellCheck();
   fixedPositions_.clear();
+}
+
+QString TextEditWithSpellCheck::preserveCase(const QString &originalWord,
+                                             const QString &correctedWord) {
+  if (originalWord.isEmpty() || correctedWord.isEmpty()) {
+    return correctedWord;
+  }
+
+  // Если оригинальное слово полностью в верхнем регистре
+  if (originalWord == originalWord.toUpper()) {
+    return correctedWord.toUpper();
+  }
+
+  // Если первая буква заглавная, а остальные строчные
+  if (originalWord[0].isUpper() &&
+      (originalWord.length() == 1 ||
+       originalWord.mid(1) == originalWord.mid(1).toLower())) {
+    if (!correctedWord.isEmpty()) {
+      QString result = correctedWord;
+      result[0] = result[0].toUpper();
+      return result;
+    }
+  }
+
+  // Если слово начинается с заглавной, но имеет смешанный регистр
+  // (например, "ПрИмЕр") - сохраняем только первую заглавную
+  if (originalWord[0].isUpper()) {
+    QString result = correctedWord;
+    result[0] = result[0].toUpper();
+    return result;
+  }
+
+  // В остальных случаях возвращаем исправленное слово как есть (обычно в нижнем
+  // регистре)
+  return correctedWord;
 }
 
 void TextEditWithSpellCheck::clearSpellCheck() {
@@ -228,7 +267,7 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
 
     qDebug() << "word: " << word;
 
-    // Пропускаем игнорируемые слова
+    // Пропускаем игнорируемые слова (сравниваем в нижнем регистре)
     if (isWordIgnored(word))
       continue;
 
@@ -236,7 +275,7 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
     std::string utf8Word = lowerWord.toUtf8().toStdString();
     utf8::Unistring ustr(utf8Word);
 
-    // Проверяем наличие в словаре
+    // Проверяем наличие в словаре (сравниваем в нижнем регистре)
     if (vocab_->isInVocab(ustr)) {
       qDebug() << "слово есть в словаре, пропускаем";
       continue;
@@ -256,6 +295,7 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
       }
 
       if (!suggestions.isEmpty()) {
+        // Сохраняем оригинальное слово (с сохранением регистра)
         result.append({start, length, word, suggestions});
       } else {
         qDebug() << "нет предложений для: " << word;

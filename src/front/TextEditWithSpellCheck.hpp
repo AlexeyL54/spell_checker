@@ -92,6 +92,14 @@ private slots:
   void onTextChanged(); ///< Сбрасывает выделение при ручном изменении текста
 
 private:
+  /**
+   * @brief Применяет регистр оригинального слова к исправленному слову
+   * @param originalWord Оригинальное слово (с ошибкой)
+   * @param correctedWord Исправленное слово (обычно в нижнем регистре)
+   * @return Слово с сохранённым регистром
+   */
+  QString preserveCase(const QString &originalWord,
+                       const QString &correctedWord);
   void
   clearSpellCheck(); ///< Удаляет всё форматирование и очищает список ошибок
   void highlightErrors();         ///< Применяет красное подчёркивание к ошибкам
