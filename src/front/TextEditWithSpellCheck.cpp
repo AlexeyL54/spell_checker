@@ -39,6 +39,7 @@ void TextEditWithSpellCheck::performSpellCheck() {
   if (!hasOriginal_) {
     originalText_ = toPlainText();
     hasOriginal_ = true;
+    emit canRevertChanged(true); // Добавляем сигнал
   }
 
   // Очищаем предыдущее форматирование и списки
@@ -63,6 +64,7 @@ void TextEditWithSpellCheck::applyFirstCorrections() {
   if (!hasOriginal_) {
     originalText_ = toPlainText();
     hasOriginal_ = true;
+    emit canRevertChanged(true); // Добавляем сигнал
   }
 
   // Находим актуальные ошибки в текущем тексте
@@ -96,6 +98,9 @@ void TextEditWithSpellCheck::applyFirstCorrections() {
   errors_.clear();
 
   selfUpdating_ = false;
+
+  // После исправления текст изменился, но originalText_ остался для отмены
+  emit spellCheckCompleted(0); // Ошибок больше нет
 }
 
 void TextEditWithSpellCheck::revertToOriginal() {
@@ -106,7 +111,8 @@ void TextEditWithSpellCheck::revertToOriginal() {
   setPlainText(originalText_);
   clearSpellCheck();
   fixedPositions_.clear();
-  hasOriginal_ = false; // После отмены оригинал более не действителен
+  hasOriginal_ = false;         // После отмены оригинал более не действителен
+  emit canRevertChanged(false); // Добавляем сигнал
   selfUpdating_ = false;
 }
 
@@ -118,6 +124,8 @@ void TextEditWithSpellCheck::clearAll() {
   hasOriginal_ = false;
   originalText_.clear();
   ignoredWords_.clear();
+  emit canRevertChanged(false); // Добавляем сигнал
+  emit spellCheckCompleted(0);  // Ошибок нет
   selfUpdating_ = false;
 }
 
@@ -129,6 +137,8 @@ void TextEditWithSpellCheck::setText(const QString &text) {
   clearSpellCheck();
   fixedPositions_.clear();
   hasOriginal_ = false;
+  originalText_.clear();
+  emit canRevertChanged(false); // Добавляем сигнал
   selfUpdating_ = false;
 }
 

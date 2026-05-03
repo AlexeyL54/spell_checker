@@ -389,6 +389,8 @@ void MainWindow::showMainContent() {
     // Подключаем сигнал проверки орфографии к обновлению статус-бара
     connect(edit, &TextEditWithSpellCheck::spellCheckCompleted, inputPage,
             &InputPage::onSpellCheckCompleted);
+    connect(edit, &TextEditWithSpellCheck::canRevertChanged, inputPage,
+            &InputPage::onCanRevertChanged);
   }
 }
 void MainWindow::onLoadStarted() {

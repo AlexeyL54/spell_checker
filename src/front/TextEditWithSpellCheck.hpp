@@ -94,6 +94,7 @@ private slots:
 
 signals:
   void spellCheckCompleted(int errorCount);
+  void canRevertChanged(bool canRevert);
 
 private:
   /**

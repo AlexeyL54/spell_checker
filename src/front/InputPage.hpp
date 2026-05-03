@@ -31,6 +31,7 @@ public:
 public slots:
   void onFileSelected();
   void onSpellCheckCompleted(int errorCount);
+  void onCanRevertChanged(bool canRevert);
 
 signals:
   void checkRequested();
@@ -63,6 +64,7 @@ private:
   void showInstruction();
   void updateInstructionButtonStyle();
   void applyStatusBarStyle();
+  void updateButtonsState();
 
   ThemeColors currentColors_;
 
