@@ -88,11 +88,14 @@ void InputPage::setupInputChoice() {
   inputChoiceGroup->addButton(radioKeyboard);
   inputChoiceGroup->addButton(radioFile);
 
-  QVBoxLayout *choiceRow = new QVBoxLayout();
+  // Создаём контейнер для радио-кнопок с объектным именем
+  QWidget *choiceContainer = new QWidget(contentColumn);
+  choiceContainer->setObjectName("inputChoiceWidget");
+  QVBoxLayout *choiceRow = new QVBoxLayout(choiceContainer);
   choiceRow->setSpacing(8);
   choiceRow->addWidget(radioKeyboard);
   choiceRow->addWidget(radioFile);
-  contentLayout->addLayout(choiceRow);
+  contentLayout->addWidget(choiceContainer);
 
   stack = new QStackedWidget(contentColumn);
 }
@@ -184,8 +187,11 @@ void InputPage::setupFilePage() {
   fileButtonsLayout->setSpacing(12);
 
   btnSelectFile = new QPushButton("Выбрать файл", contentColumn);
+  btnSelectFile->setObjectName("btnSelectFile"); // Добавляем объектное имя
   btnSelectFile->setCursor(Qt::PointingHandCursor);
+
   btnLoadFile = new QPushButton("Загрузить", contentColumn);
+  btnLoadFile->setObjectName("btnLoadFile"); // Добавляем объектное имя
   btnLoadFile->setCursor(Qt::PointingHandCursor);
   btnLoadFile->setEnabled(false);
 
@@ -342,47 +348,217 @@ void InputPage::applyStatusBarStyle() {
   if (!statusBar)
     return;
 
+  // Используем цвета из текущей темы, без привязки к светлой/тёмной
   QString styleSheet =
-      QString("QStatusBar#bottomStatusBar {"
-              "  background-color: %1;"
-              "  border-top: 1px solid %2;"
-              "  border-bottom: none;"
-              "  padding: 0px;"
-              "  margin: 0px;"
-              "}"
-              "QStatusBar::item {"
-              "  border: none;"
-              "}"
-              "QPushButton {"
-              "  background: transparent;"
-              "  border: none;"
-              "  border-radius: 3px;"
-              "  padding: 6px 12px;"
-              "  margin: 2px;"
-              "  color: %3;"
-              "}"
-              "QPushButton:hover {"
-              "  background-color: %4;"
-              "}"
-              "QPushButton:pressed {"
-              "  background-color: %5;"
-              "}"
-              "QPushButton:disabled {"
-              "  color: %6;"
-              "}"
-              "QLabel {"
-              "  background: transparent;"
-              "  padding: 4px 6px;"
-              "  margin: 2px;"
-              "  color: %3;"
-              "  font-size: 11px;"
-              "}")
-          .arg(currentColors_.surface.name(), currentColors_.border.name(),
-               currentColors_.textPrimary.name(), currentColors_.hover.name(),
-               currentColors_.pressed.name(),
-               currentColors_.textDisabled.name());
+      QString(
+          // Стиль для статус-бара
+          "QStatusBar#bottomStatusBar {"
+          "  background-color: %1;"
+          "  border-top: 1px solid %2;"
+          "  border-bottom: none;"
+          "  padding: 0px;"
+          "  margin: 0px;"
+          "}"
+          "QStatusBar::item {"
+          "  border: none;"
+          "}"
+
+          // Кнопки в статус-баре
+          "QStatusBar#bottomStatusBar QPushButton {"
+          "  background-color: %1;"
+          "  border: 1px solid %2;"
+          "  border-radius: 4px;"
+          "  padding: 5px 12px;"
+          "  margin: 2px;"
+          "  color: %3;"
+          "  min-width: 80px;"
+          "}"
+          "QStatusBar#bottomStatusBar QPushButton:hover {"
+          "  background-color: %4;"
+          "  border-color: %5;"
+          "}"
+          "QStatusBar#bottomStatusBar QPushButton:pressed {"
+          "  background-color: %6;"
+          "  color: %3;"
+          "}"
+          "QStatusBar#bottomStatusBar QPushButton:disabled {"
+          "  background-color: %1;"
+          "  color: %7;"
+          "  border-color: %2;"
+          "}"
+
+          // Метки в статус-баре
+          "QStatusBar#bottomStatusBar QLabel {"
+          "  background: transparent;"
+          "  padding: 4px 6px;"
+          "  margin: 2px;"
+          "  color: %3;"
+          "  font-size: 11px;"
+          "}"
+
+          // ========== СТИЛИ ДЛЯ ОСТАЛЬНЫХ ЭЛЕМЕНТОВ ==========
+
+          // Кнопка "?" в верхней панели
+          "QPushButton#instructionButton {"
+          "  background-color: %5;"
+          "  color: %3;"
+          "  font-size: 16px;"
+          "  font-weight: bold;"
+          "  border: 1px solid %2;"
+          "  border-radius: 14px;"
+          "  padding: 0px;"
+          "  min-width: 28px;"
+          "  max-width: 28px;"
+          "  min-height: 28px;"
+          "  max-height: 28px;"
+          "}"
+          "QPushButton#instructionButton:hover {"
+          "  background-color: %4;"
+          "}"
+          "QPushButton#instructionButton:pressed {"
+          "  background-color: %6;"
+          "}"
+
+          // Стили для RadioButton (переключатели)
+          "QRadioButton {"
+          "  color: %3;"
+          "  background-color: transparent;"
+          "  spacing: 8px;"
+          "  padding: 4px 0px;"
+          "}"
+          "QRadioButton::indicator {"
+          "  width: 16px;"
+          "  height: 16px;"
+          "  border-radius: 8px;"
+          "  border: 2px solid %2;"
+          "  background-color: %1;"
+          "}"
+          "QRadioButton::indicator:hover {"
+          "  border-color: %5;"
+          "}"
+          "QRadioButton::indicator:checked {"
+          "  background-color: %5;"
+          "  border-color: %5;"
+          "}"
+          "QRadioButton:disabled {"
+          "  color: %7;"
+          "}"
+          "QRadioButton:disabled::indicator {"
+          "  border-color: %2;"
+          "  background-color: %8;"
+          "}"
+
+          // Стили для области выбора способа ввода (группа радио-кнопок)
+          "QWidget#inputChoiceWidget {"
+          "  background-color: %1;"
+          "  border: 1px solid %2;"
+          "  border-radius: 6px;"
+          "  padding: 8px;"
+          "}"
+
+          // Стили для текстового поля ввода
+          "QPlainTextEdit {"
+          "  background-color: %1;"
+          "  color: %3;"
+          "  border: 1px solid %2;"
+          "  border-radius: 4px;"
+          "  padding: 8px;"
+          "  selection-background-color: %5;"
+          "  selection-color: %3;"
+          "}"
+          "QPlainTextEdit:focus {"
+          "  border-color: %5;"
+          "}"
+          "QPlainTextEdit:disabled {"
+          "  background-color: %8;"
+          "  color: %7;"
+          "  border-color: %2;"
+          "}"
+
+          // Стили для QLineEdit (поле пути к файлу)
+          "QLineEdit {"
+          "  background-color: %1;"
+          "  color: %3;"
+          "  border: 1px solid %2;"
+          "  border-radius: 4px;"
+          "  padding: 6px 8px;"
+          "}"
+          "QLineEdit:focus {"
+          "  border-color: %5;"
+          "}"
+          "QLineEdit:disabled {"
+          "  background-color: %8;"
+          "  color: %7;"
+          "  border-color: %2;"
+          "}"
+
+          // Стили для QComboBox (выбор темы)
+          "QComboBox {"
+          "  background-color: %1;"
+          "  color: %3;"
+          "  border: 1px solid %2;"
+          "  border-radius: 4px;"
+          "  padding: 5px 12px;"
+          "  min-width: 80px;"
+          "}"
+          "QComboBox:hover {"
+          "  border-color: %5;"
+          "}"
+          "QComboBox::drop-down {"
+          "  border: none;"
+          "}"
+          "QComboBox::down-arrow {"
+          "  image: none;"
+          "  border: none;"
+          "  width: 0px;"
+          "}"
+          "QComboBox QAbstractItemView {"
+          "  background-color: %1;"
+          "  color: %3;"
+          "  border: 1px solid %2;"
+          "  selection-background-color: %5;"
+          "}"
+
+          // Стили для QLabel (обычные метки)
+          "QLabel {"
+          "  color: %3;"
+          "  background-color: transparent;"
+          "}"
+
+          // Стили для вкладок/окон файловой страницы
+          "QPushButton#btnSelectFile, QPushButton#btnLoadFile {"
+          "  background-color: %5;"
+          "  color: %3;"
+          "  border: 1px solid %2;"
+          "  border-radius: 4px;"
+          "  padding: 6px 16px;"
+          "  min-width: 100px;"
+          "}"
+          "QPushButton#btnSelectFile:hover, QPushButton#btnLoadFile:hover {"
+          "  background-color: %4;"
+          "}"
+          "QPushButton#btnSelectFile:pressed, QPushButton#btnLoadFile:pressed {"
+          "  background-color: %6;"
+          "}"
+          "QPushButton#btnSelectFile:disabled, "
+          "QPushButton#btnLoadFile:disabled {"
+          "  background-color: %8;"
+          "  color: %7;"
+          "  border-color: %2;"
+          "}")
+          .arg(currentColors_.surface.name(),      // %1 - фон
+               currentColors_.border.name(),       // %2 - цвет границы
+               currentColors_.textPrimary.name(),  // %3 - цвет текста
+               currentColors_.hover.name(),        // %4 - цвет при наведении
+               currentColors_.primary.name(),      // %5 - акцентный цвет
+               currentColors_.pressed.name(),      // %6 - цвет при нажатии
+               currentColors_.textDisabled.name(), // %7 - цвет disabled текста
+               currentColors_.background.name());  // %8 - фон для disabled
 
   statusBar->setStyleSheet(styleSheet);
+
+  // Применяем стиль ко всему виджету InputPage
+  setStyleSheet(styleSheet);
 }
 
 void InputPage::updateInstructionButtonStyle() {
