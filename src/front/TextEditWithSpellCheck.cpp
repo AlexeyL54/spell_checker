@@ -142,14 +142,10 @@ void TextEditWithSpellCheck::mousePressEvent(QMouseEvent *event) {
         // Показываем меню с вариантами
         QMenu menu;
         for (const QString &sugg : err.suggestions) {
-          // Захватываем err и sugg по значению для лямбды
           menu.addAction(sugg, [this, err, sugg]() {
-            // Сохраняем регистр оригинального слова
             QString correctedWord = preserveCase(err.word, sugg);
             selfUpdating_ = true;
             replaceWordAt(err.start, err.length, correctedWord);
-            // После замены перезапускаем проверку для обновления выделения
-            performSpellCheck();
             selfUpdating_ = false;
           });
         }
@@ -157,9 +153,26 @@ void TextEditWithSpellCheck::mousePressEvent(QMouseEvent *event) {
         menu.addAction("Отметить как правильное", [this, err]() {
           // Добавляем слово в игнорируемые
           addIgnoredWord(err.word);
-          // Перезапускаем проверку, чтобы убрать выделение со всех вхождений
-          // этого слова
-          performSpellCheck();
+
+          // Убираем подчёркивание только для этого конкретного слова
+          // Вместо перезапуска всей проверки
+          selfUpdating_ = true;
+
+          // Удаляем это слово из списка ошибок
+          for (int i = 0; i < errors_.size(); ++i) {
+            if (errors_[i].start == err.start &&
+                errors_[i].length == err.length) {
+              errors_.removeAt(i);
+              break;
+            }
+          }
+
+          // Очищаем форматирование только для этого слова
+          QTextCharFormat defaultFormat;
+          defaultFormat.setUnderlineStyle(QTextCharFormat::NoUnderline);
+          applyFormatToRange(err.start, err.length, defaultFormat);
+
+          selfUpdating_ = false;
         });
         menu.exec(event->globalPosition().toPoint());
         event->accept();
