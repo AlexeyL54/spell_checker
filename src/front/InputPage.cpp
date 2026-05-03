@@ -106,29 +106,23 @@ void InputPage::setupStatusBar() {
   // Кнопки
   btnCheck = new QPushButton("Проверить", this);
   btnCheck->setCursor(Qt::PointingHandCursor);
-  btnCheck->setToolTip("Проверить орфографию");
 
   btnFix = new QPushButton("Исправить", this);
   btnFix->setCursor(Qt::PointingHandCursor);
-  btnFix->setToolTip("Исправить все ошибки");
   btnFix->setEnabled(false);
 
   btnRevert = new QPushButton("Отменить изменения", this);
   btnRevert->setCursor(Qt::PointingHandCursor);
-  btnRevert->setToolTip("Отменить все изменения за сессию");
   btnRevert->setEnabled(false);
 
   btnClear = new QPushButton("Очистить", this);
   btnClear->setCursor(Qt::PointingHandCursor);
-  btnClear->setToolTip("Очистить текст");
 
   btnCopy = new QPushButton("Копировать", this);
   btnCopy->setCursor(Qt::PointingHandCursor);
-  btnCopy->setToolTip("Копировать текст");
 
   btnSave = new QPushButton("Сохранить", this);
   btnSave->setCursor(Qt::PointingHandCursor);
-  btnSave->setToolTip("Сохранить в файл");
 
   // Добавляем кнопки с разделителями
   statusBar->addWidget(btnCheck);
@@ -272,6 +266,9 @@ void InputPage::updateButtonsState() {
   // Кнопки "Проверить" и "Исправить" активны, если есть буквы
   btnCheck->setEnabled(hasLetters);
   btnFix->setEnabled(hasLetters);
+  btnCopy->setEnabled(hasLetters);
+  btnSave->setEnabled(hasLetters);
+  btnClear->setEnabled(hasLetters);
 
   // Кнопка "Отменить изменения" управляется своим сигналом
   // (не меняем её состояние здесь)
@@ -288,6 +285,7 @@ void InputPage::onSpellCheckCompleted(int errorCount) {
 }
 
 void InputPage::onTextChanged() { updateStatusBar(-1); }
+
 void InputPage::onFileSelected() {
   QString path =
       QFileDialog::getOpenFileName(this, "Выберите файл", QDir::homePath(),
