@@ -158,6 +158,12 @@ void TextEditWithSpellCheck::mousePressEvent(QMouseEvent *event) {
             selfUpdating_ = true;
             replaceWordAt(err.start, err.length, correctedWord);
             selfUpdating_ = false;
+
+            QTextCharFormat fixedFormat;
+            fixedFormat.setUnderlineStyle(QTextCharFormat::WaveUnderline);
+            fixedFormat.setUnderlineColor(currentColors_.spellFixed);
+            applyFormatToRange(err.start, correctedWord.length(), fixedFormat);
+            selfUpdating_ = false;
           });
         }
         menu.addSeparator();
