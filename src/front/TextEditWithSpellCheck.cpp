@@ -50,6 +50,7 @@ void TextEditWithSpellCheck::performSpellCheck() {
   highlightErrors();
 
   qDebug() << "Spell check completed, found" << errors_.size() << "errors";
+  emit spellCheckCompleted(errors_.size());
 }
 
 void TextEditWithSpellCheck::applyFirstCorrections() {

@@ -373,23 +373,24 @@ void MainWindow::showMainContent() {
     stackedWidget->setCurrentWidget(mainContent);
   }
 
-  // Включаем UI элементы
   if (themeCombo) {
     themeCombo->setEnabled(true);
   }
 
-  // Включаем кнопку инструкции
   QPushButton *instructionBtn = inputPage->getInstructionButton();
   if (instructionBtn) {
     instructionBtn->setEnabled(true);
   }
 
-  // Передаём словарь в TextEdit
   if (inputPage && inputPage->getTextEdit() && vocabulary) {
-    inputPage->getTextEdit()->setVocabulary(vocabulary);
+    TextEditWithSpellCheck *edit = inputPage->getTextEdit();
+    edit->setVocabulary(vocabulary);
+
+    // Подключаем сигнал проверки орфографии к обновлению статус-бара
+    connect(edit, &TextEditWithSpellCheck::spellCheckCompleted, inputPage,
+            &InputPage::onSpellCheckCompleted);
   }
 }
-
 void MainWindow::onLoadStarted() {
   if (loadingPage) {
     loadingPage->showLoading();

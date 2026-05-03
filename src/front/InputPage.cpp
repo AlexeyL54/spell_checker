@@ -8,16 +8,16 @@
 #include <QMessageBox>
 #include <QTextStream>
 
-InputPage::InputPage(QWidget *parent) : QWidget(parent) {
+InputPage::InputPage(QWidget *parent) : QWidget(parent), lastErrorCount_(-1) {
   setupMainLayout();
   setupContentRow();
   setupContentColumn();
   setupIntroText();
   setupInputChoice();
+  setupStatusBar();
   setupKeyboardPage();
   setupFilePage();
-  setupButtons();
-  setupInstructionButton(); // Только создаёт кнопку
+  setupInstructionButton();
   setupConnections();
 
   contentLayout->addWidget(stack, 1);
@@ -49,12 +49,8 @@ bool InputPage::loadAndSwitchToKeyboard() {
   QString content = stream.readAll();
   file.close();
 
-  // Загружаем текст в поле ввода
   textInput->setText(content);
-
-  // Переключаемся на режим клавиатуры
   radioKeyboard->setChecked(true);
-
   return true;
 }
 
@@ -101,14 +97,82 @@ void InputPage::setupInputChoice() {
   stack = new QStackedWidget(contentColumn);
 }
 
+void InputPage::setupStatusBar() {
+  statusBar = new QStatusBar(this);
+  statusBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+  statusBar->setFixedHeight(32);
+  statusBar->setObjectName("bottomStatusBar");
+  
+  // Кнопки
+  btnCheck = new QPushButton("Проверить", this);
+  btnCheck->setCursor(Qt::PointingHandCursor);
+  btnCheck->setToolTip("Проверить орфографию");
+  
+  btnFix = new QPushButton("Исправить", this);
+  btnFix->setCursor(Qt::PointingHandCursor);
+  btnFix->setToolTip("Исправить все ошибки");
+  btnFix->setEnabled(false);
+  
+  btnRevert = new QPushButton("Отменить изменения", this);
+  btnRevert->setCursor(Qt::PointingHandCursor);
+  btnRevert->setToolTip("Отменить все изменения за сессию");
+  btnRevert->setEnabled(false);
+  
+  btnClear = new QPushButton("Очистить", this);
+  btnClear->setCursor(Qt::PointingHandCursor);
+  btnClear->setToolTip("Очистить текст");
+  
+  btnCopy = new QPushButton("Копировать", this);
+  btnCopy->setCursor(Qt::PointingHandCursor);
+  btnCopy->setToolTip("Копировать текст");
+  
+  btnSave = new QPushButton("Сохранить", this);
+  btnSave->setCursor(Qt::PointingHandCursor);
+  btnSave->setToolTip("Сохранить в файл");
+  
+  // Добавляем кнопки с разделителями
+  statusBar->addWidget(btnCheck);
+  statusBar->addWidget(btnFix);
+  statusBar->addWidget(btnRevert);
+  
+  // Растягивающийся промежуток между группами кнопок
+  QWidget *spacer = new QWidget();
+  spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+  statusBar->addWidget(spacer, 1);
+  
+  statusBar->addWidget(btnClear);
+  statusBar->addWidget(btnCopy);
+  statusBar->addWidget(btnSave);
+  
+  // Информационные индикаторы
+  statusInfo = new QLabel("Готов к работе", this);
+  statusInfo->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+  statusBar->addPermanentWidget(statusInfo);
+  
+  QLabel *encodingLabel = new QLabel("UTF-8", this);
+  encodingLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+  statusBar->addPermanentWidget(encodingLabel);
+  
+  statsLabel = new QLabel("0 строк, 0 символов", this);
+  statsLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+  statusBar->addPermanentWidget(statsLabel);
+}
+
 void InputPage::setupKeyboardPage() {
   pageKeyboard = new QWidget(contentColumn);
   QVBoxLayout *layoutKeyboard = new QVBoxLayout(pageKeyboard);
+  layoutKeyboard->setContentsMargins(0, 0, 0, 0);
+  layoutKeyboard->setSpacing(0);
 
   textInput = new TextEditWithSpellCheck(contentColumn);
   textInput->setPlaceholderText("Введите текст для анализа...");
   textInput->setMinimumHeight(200);
   layoutKeyboard->addWidget(textInput);
+  
+  // Добавляем statusBar вниз страницы клавиатуры
+  if (statusBar) {
+    layoutKeyboard->addWidget(statusBar);
+  }
 
   stack->addWidget(pageKeyboard);
 }
@@ -122,81 +186,82 @@ void InputPage::setupFilePage() {
   filePathEdit->setPlaceholderText("Файл не выбран");
   layoutFile->addWidget(filePathEdit);
 
-  // Горизонтальный layout для кнопок выбора файла и загрузки
   QHBoxLayout *fileButtonsLayout = new QHBoxLayout();
   fileButtonsLayout->setSpacing(12);
 
   btnSelectFile = new QPushButton("Выбрать файл", contentColumn);
   btnSelectFile->setCursor(Qt::PointingHandCursor);
-
   btnLoadFile = new QPushButton("Загрузить", contentColumn);
   btnLoadFile->setCursor(Qt::PointingHandCursor);
-  btnLoadFile->setEnabled(false); // Изначально отключена, пока не выбран файл
+  btnLoadFile->setEnabled(false);
 
   fileButtonsLayout->addWidget(btnSelectFile);
   fileButtonsLayout->addWidget(btnLoadFile);
   fileButtonsLayout->addStretch();
-
   layoutFile->addLayout(fileButtonsLayout);
 
   stack->addWidget(pageFile);
 }
 
-void InputPage::setupButtons() {
-  // Создаём горизонтальный layout для кнопок
-  QHBoxLayout *buttonLayout = new QHBoxLayout();
-  buttonLayout->setSpacing(12);
-
-  btnCheck = new QPushButton("Проверить", this);
-  btnFix = new QPushButton("Исправить", this);
-  btnRevert = new QPushButton("Отменить изменения", this);
-  btnClear = new QPushButton("Очистить", this);
-  btnCopy = new QPushButton("Копировать", this);
-  btnSave = new QPushButton("Сохранить", this);
-
-  for (auto btn : {btnCheck, btnFix, btnRevert, btnClear, btnCopy, btnSave}) {
-    btn->setCursor(Qt::PointingHandCursor);
-    buttonLayout->addWidget(btn);
-  }
-  buttonLayout->addStretch();
-
-  // Добавляем layout с кнопками на страницу клавиатуры (под textInput)
-  QVBoxLayout *keyboardLayout =
-      qobject_cast<QVBoxLayout *>(pageKeyboard->layout());
-  if (keyboardLayout) {
-    keyboardLayout->addLayout(buttonLayout);
-  }
-}
-
 void InputPage::setupConnections() {
-  connect(btnSelectFile, &QPushButton::clicked, this,
-          &InputPage::onFileSelected);
+  connect(btnSelectFile, &QPushButton::clicked, this, &InputPage::onFileSelected);
   connect(btnLoadFile, &QPushButton::clicked, this, &InputPage::onLoadFile);
-  connect(radioKeyboard, &QRadioButton::toggled, this,
-          &InputPage::onSourceToggled);
+  connect(radioKeyboard, &QRadioButton::toggled, this, &InputPage::onSourceToggled);
   connect(radioFile, &QRadioButton::toggled, this, &InputPage::onSourceToggled);
-
-  // Подключаем кнопки к сигналам
   connect(btnCheck, &QPushButton::clicked, this, &InputPage::checkRequested);
   connect(btnFix, &QPushButton::clicked, this, &InputPage::fixRequested);
   connect(btnRevert, &QPushButton::clicked, this, &InputPage::revertRequested);
   connect(btnClear, &QPushButton::clicked, this, &InputPage::clearRequested);
   connect(btnCopy, &QPushButton::clicked, this, &InputPage::copyRequested);
   connect(btnSave, &QPushButton::clicked, this, &InputPage::saveRequested);
-
-  // Начальное состояние: клавиатурный режим, стек показывает страницу
-  // клавиатуры
+  connect(textInput, &QPlainTextEdit::textChanged, this, &InputPage::onTextChanged);
+  
   radioKeyboard->setChecked(true);
   stack->setCurrentIndex(0);
 }
 
+void InputPage::updateStatusBar(int errorCount) {
+  if (!statsLabel || !statusInfo) return;
+  
+  // Обновляем статистику текста
+  QString text = textInput->toPlainText();
+  int lines = text.split('\n').size();
+  int chars = text.length();
+  statsLabel->setText(QString("%1 строк, %2 символов").arg(lines).arg(chars));
+  
+  // Обновляем статус проверки
+  if (errorCount < 0) {
+    statusInfo->setText("Редактирование...");
+    if (btnFix) btnFix->setEnabled(false);
+    if (btnRevert) btnRevert->setEnabled(false);
+    lastErrorCount_ = -1;
+  } else if (errorCount == 0) {
+    statusInfo->setText("Ошибок не найдено");
+    if (btnFix) btnFix->setEnabled(false);
+    if (btnRevert) btnRevert->setEnabled(true);
+    lastErrorCount_ = 0;
+  } else {
+    statusInfo->setText(QString("Найдено ошибок: %1").arg(errorCount));
+    if (btnFix) btnFix->setEnabled(true);
+    if (btnRevert) btnRevert->setEnabled(true);
+    lastErrorCount_ = errorCount;
+  }
+}
+
+void InputPage::onSpellCheckCompleted(int errorCount) {
+  updateStatusBar(errorCount);
+}
+
+void InputPage::onTextChanged() {
+  updateStatusBar(-1);
+}
+
 void InputPage::onFileSelected() {
-  QString path =
-      QFileDialog::getOpenFileName(this, "Выберите файл", QDir::homePath(),
+  QString path = QFileDialog::getOpenFileName(this, "Выберите файл", QDir::homePath(),
                                    "Текстовые файлы (*.txt);;Все файлы (*.*)");
   if (!path.isEmpty()) {
     filePathEdit->setText(path);
-    btnLoadFile->setEnabled(true); // Активируем кнопку загрузки
+    if (btnLoadFile) btnLoadFile->setEnabled(true);
   }
 }
 
@@ -218,10 +283,7 @@ void InputPage::onLoadFile() {
   QString content = stream.readAll();
   file.close();
 
-  // Загружаем текст в поле ввода
   textInput->setText(content);
-
-  // Переключаемся на режим клавиатуры
   radioKeyboard->setChecked(true);
 }
 
@@ -234,51 +296,89 @@ void InputPage::onSourceToggled() {
 }
 
 void InputPage::setupInstructionButton() {
-  // Создаём кнопку с текстом "?"
   btnInstruction = new QPushButton("?", this);
   btnInstruction->setObjectName("instructionButton");
-
-  // Делаем кнопку идеально круглой (ширина = высота)
   int buttonSize = 28;
   btnInstruction->setFixedSize(buttonSize, buttonSize);
   btnInstruction->setCursor(Qt::PointingHandCursor);
-
-  connect(btnInstruction, &QPushButton::clicked, this,
-          &InputPage::showInstruction);
-
-  // Изначально кнопка отключена (пока загружается словарь)
+  connect(btnInstruction, &QPushButton::clicked, this, &InputPage::showInstruction);
   btnInstruction->setEnabled(false);
+}
 
-  // НЕ ДОБАВЛЯЕМ кнопку в layout здесь - она будет добавлена в MainWindow
+void InputPage::applyStatusBarStyle() {
+  if (!statusBar) return;
+  
+  QString styleSheet = QString(
+    "QStatusBar#bottomStatusBar {"
+    "  background-color: %1;"
+    "  border-top: 1px solid %2;"
+    "  border-bottom: none;"
+    "  padding: 0px;"
+    "  margin: 0px;"
+    "}"
+    "QStatusBar::item {"
+    "  border: none;"
+    "}"
+    "QPushButton {"
+    "  background: transparent;"
+    "  border: none;"
+    "  border-radius: 3px;"
+    "  padding: 6px 12px;"
+    "  margin: 2px;"
+    "  color: %3;"
+    "}"
+    "QPushButton:hover {"
+    "  background-color: %4;"
+    "}"
+    "QPushButton:pressed {"
+    "  background-color: %5;"
+    "}"
+    "QPushButton:disabled {"
+    "  color: %6;"
+    "}"
+    "QLabel {"
+    "  background: transparent;"
+    "  padding: 4px 6px;"
+    "  margin: 2px;"
+    "  color: %3;"
+    "  font-size: 11px;"
+    "}"
+  ).arg(currentColors_.surface.name(),
+        currentColors_.border.name(),
+        currentColors_.textPrimary.name(),
+        currentColors_.hover.name(),
+        currentColors_.pressed.name(),
+        currentColors_.textDisabled.name());
+  
+  statusBar->setStyleSheet(styleSheet);
 }
 
 void InputPage::updateInstructionButtonStyle() {
-  if (!btnInstruction)
-    return;
-
+  if (!btnInstruction) return;
+  
   int buttonSize = btnInstruction->width();
   btnInstruction->setStyleSheet(
-      QString("QPushButton {"
-              "  background-color: %1;"
-              "  color: %2;"
-              "  font-size: 16px;"
-              "  font-weight: bold;"
-              "  border: 1px solid %3;"
-              "  border-radius: %4px;"
-              "  padding: 0px;"
-              "}"
-              "QPushButton:hover {"
-              "  background-color: %5;"
-              "}"
-              "QPushButton:pressed {"
-              "  background-color: %6;"
-              "}")
-          .arg(currentColors_.primary.name(),     // %1 - фон
-               currentColors_.textPrimary.name(), // %2 - цвет текста
-               currentColors_.border.name(),      // %3 - цвет границы
-               QString::number(buttonSize / 2), // %4 - радиус (половина ширины)
-               currentColors_.hover.name(),     // %5 - при наведении
-               currentColors_.pressed.name())); // %6 - при нажатии
+    QString("QPushButton {"
+            "  background-color: %1;"
+            "  color: %2;"
+            "  font-size: 16px;"
+            "  font-weight: bold;"
+            "  border: 1px solid %3;"
+            "  border-radius: %4px;"
+            "  padding: 0px;"
+            "}"
+            "QPushButton:hover {"
+            "  background-color: %5;"
+            "}"
+            "QPushButton:pressed {"
+            "  background-color: %6;"
+            "}")
+    .arg(currentColors_.primary.name(),
+         currentColors_.textPrimary.name(),
+         currentColors_.border.name(),
+         QString::number(buttonSize / 2),
+         currentColors_.hover.name(),
+         currentColors_.pressed.name()));
 }
 
 void InputPage::showInstruction() {
@@ -288,27 +388,24 @@ void InputPage::showInstruction() {
   dialog->setMinimumHeight(500);
 
   QVBoxLayout *layout = new QVBoxLayout(dialog);
-
-  // Используем QTextEdit для лучшего отображения форматированного текста
+  
   QTextEdit *textEdit = new QTextEdit(dialog);
   textEdit->setPlainText(getInstructionText());
   textEdit->setReadOnly(true);
   textEdit->setFrameShape(QFrame::NoFrame);
-
-  // Настраиваем шрифт для моноширинного отображения
+  
   QFont font;
   font.setFamily("Consolas");
   font.setPointSize(10);
   textEdit->setFont(font);
-
-  // Настраиваем цвета для читаемости
+  
   QPalette pal = textEdit->palette();
   pal.setColor(QPalette::Base, QColor(30, 30, 35));
   pal.setColor(QPalette::Text, QColor(220, 220, 220));
   textEdit->setPalette(pal);
-
+  
   layout->addWidget(textEdit);
-
+  
   QHBoxLayout *buttonLayout = new QHBoxLayout();
   QPushButton *btnClose = new QPushButton("Закрыть", dialog);
   btnClose->setCursor(Qt::PointingHandCursor);
@@ -317,9 +414,8 @@ void InputPage::showInstruction() {
   buttonLayout->addWidget(btnClose);
   buttonLayout->addStretch();
   layout->addLayout(buttonLayout);
-
+  
   connect(btnClose, &QPushButton::clicked, dialog, &QDialog::accept);
-
   dialog->exec();
   delete dialog;
 }
@@ -327,8 +423,8 @@ void InputPage::showInstruction() {
 void InputPage::updateThemeColors(const ThemeColors &colors) {
   currentColors_ = colors;
   updateInstructionButtonStyle();
-
-  // Обновляем TextEdit с новыми цветами
+  applyStatusBarStyle();
+  
   if (textInput) {
     textInput->setThemeColors(colors);
   }

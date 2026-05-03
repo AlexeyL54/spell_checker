@@ -8,6 +8,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QStackedWidget>
+#include <QStatusBar>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -19,46 +20,32 @@ class InputPage : public QWidget {
 public:
   explicit InputPage(QWidget *parent = nullptr);
 
-  // Геттеры для доступа к элементам
   TextEditWithSpellCheck *getTextEdit() const;
   bool isKeyboardMode() const;
   QString getFilePath() const;
-
-  /**
-   * @brief Возвращает указатель на кнопку инструкции
-   */
   QPushButton *getInstructionButton() const { return btnInstruction; }
-
-  /**
-   * @brief Загружает текст из выбранного файла и переключается в режим
-   * клавиатуры
-   * @return true если загрузка успешна, false если ошибка
-   */
   bool loadAndSwitchToKeyboard();
-
   void updateThemeColors(const ThemeColors &colors);
-
-  /**
-   * @brief Возвращает указатель на верхнюю панель для интеграции в MainWindow
-   */
   QWidget *getTopBarWidget() const { return topBarWidget; }
 
 public slots:
-  void onFileSelected(); // Выбор файла
+  void onFileSelected();
+  void onSpellCheckCompleted(int errorCount);
 
 signals:
-  // Сигналы, испускаемые при нажатии соответствующих кнопок
   void checkRequested();
   void fixRequested();
   void revertRequested();
   void clearRequested();
   void copyRequested();
   void saveRequested();
-  void fileLoadRequested(); // Новый сигнал для загрузки файла
+  void fileLoadRequested();
 
 private slots:
-  void onSourceToggled(); // Переключение между клавиатурой и файлом
-  void onLoadFile();      // Загрузка файла
+  void onSourceToggled();
+  void onLoadFile();
+  void onTextChanged();
+  void updateStatusBar(int errorCount = -1);
 
 private:
   void setupMainLayout();
@@ -68,11 +55,14 @@ private:
   void setupInputChoice();
   void setupKeyboardPage();
   void setupFilePage();
-  void setupButtons();
+  void setupStatusBar();
+  void setupStatusBarButtons();
+  void setupStatusBarIndicators();
   void setupConnections();
   void setupInstructionButton();
   void showInstruction();
   void updateInstructionButtonStyle();
+  void applyStatusBarStyle();
 
   ThemeColors currentColors_;
 
@@ -90,24 +80,28 @@ private:
   QWidget *pageKeyboard = nullptr;
   QWidget *pageFile = nullptr;
 
-  // Страница "С клавиатуры"
   TextEditWithSpellCheck *textInput = nullptr;
-  // Кнопки действий
+
+  // Status bar
+  QStatusBar *statusBar = nullptr;
   QPushButton *btnCheck = nullptr;
   QPushButton *btnFix = nullptr;
   QPushButton *btnRevert = nullptr;
   QPushButton *btnClear = nullptr;
   QPushButton *btnCopy = nullptr;
   QPushButton *btnSave = nullptr;
+  QLabel *statusInfo = nullptr;
+  QLabel *statsLabel = nullptr;
 
-  // Страница "С файла"
+  // File page
   QLineEdit *filePathEdit = nullptr;
   QPushButton *btnSelectFile = nullptr;
   QPushButton *btnLoadFile = nullptr;
 
   QPushButton *btnInstruction = nullptr;
-  QWidget *topBarWidget =
-      nullptr; // Сохраняем указатель на виджет верхней панели
+  QWidget *topBarWidget = nullptr;
+
+  int lastErrorCount_ = -1;
 };
 
 #endif // INPUTPAGE_HPP

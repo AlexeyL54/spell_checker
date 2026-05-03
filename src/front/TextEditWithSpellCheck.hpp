@@ -7,6 +7,7 @@
 #include <QVector>
 
 #include "ThemeManager.hpp"
+#include "qtmetamacros.h"
 
 class Vocabulary;
 struct ThemeColors;
@@ -90,6 +91,9 @@ protected:
 
 private slots:
   void onTextChanged(); ///< Сбрасывает выделение при ручном изменении текста
+
+signals:
+  void spellCheckCompleted(int errorCount);
 
 private:
   /**
