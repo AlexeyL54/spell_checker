@@ -62,8 +62,6 @@ private:
   void setupConnections();
   void setupInstructionButton();
   void showInstruction();
-  void updateInstructionButtonStyle();
-  void applyStatusBarStyle();
   void updateButtonsState();
 
   ThemeColors currentColors_;

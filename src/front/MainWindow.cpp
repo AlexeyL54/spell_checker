@@ -1,4 +1,5 @@
 #include "MainWindow.hpp"
+#include "StyleManager.hpp"
 #include <QApplication>
 #include <QClipboard>
 #include <QFile>
@@ -70,9 +71,8 @@ void MainWindow::setupThemeSelector() {
 }
 
 void MainWindow::applyTheme(const ThemeColors &colors) {
-  // Применяем палитру ко всему приложению
+  // Применяем палитру
   QPalette pal = qApp->palette();
-
   pal.setColor(QPalette::Window, colors.background);
   pal.setColor(QPalette::Base, colors.surface);
   pal.setColor(QPalette::AlternateBase, colors.surface);
@@ -82,174 +82,10 @@ void MainWindow::applyTheme(const ThemeColors &colors) {
   pal.setColor(QPalette::ButtonText, colors.textPrimary);
   pal.setColor(QPalette::Highlight, colors.selected);
   pal.setColor(QPalette::HighlightedText, colors.textPrimary);
-  pal.setColor(QPalette::ToolTipBase, colors.surface);
-  pal.setColor(QPalette::ToolTipText, colors.textPrimary);
-  pal.setColor(QPalette::PlaceholderText, colors.textDisabled);
-
-  // Цвета для полей ввода
-  pal.setColor(QPalette::Midlight, colors.border);
-  pal.setColor(QPalette::Mid, colors.divider);
-  pal.setColor(QPalette::Dark, colors.border);
-  pal.setColor(QPalette::Shadow, colors.border);
-
   qApp->setPalette(pal);
 
-  // Полная стилизация всех элементов
-  QString styleSheet = QString(
-                           // Основные стили для всех виджетов
-                           "QWidget {"
-                           "  background-color: %1;"
-                           "  color: %2;"
-                           "}"
-
-                           // Кнопки
-                           "QPushButton {"
-                           "  background-color: %3;"
-                           "  color: %2;"
-                           "  border: 1px solid %4;"
-                           "  border-radius: 4px;"
-                           "  padding: 6px 12px;"
-                           "  min-width: 100px;"
-                           "}"
-                           "QPushButton:hover {"
-                           "  background-color: %5;"
-                           "  border-color: %4;"
-                           "}"
-                           "QPushButton:pressed {"
-                           "  background-color: %6;"
-                           "}"
-                           "QPushButton:disabled {"
-                           "  background-color: %7;"
-                           "  color: %8;"
-                           "  border-color: %9;"
-                           "}"
-
-                           // Специальный стиль для кнопки инструкции
-                           "QPushButton#instructionButton {"
-                           "  background-color: %3;"
-                           "  color: %2;"
-                           "  font-size: 16px;"
-                           "  font-weight: bold;"
-                           "  border: 1px solid %4;"
-                           "  border-radius: 14px;"
-                           "  padding: 0px;"
-                           "  min-width: 28px;"
-                           "  max-width: 28px;"
-                           "  min-height: 28px;"
-                           "  max-height: 28px;"
-                           "}"
-                           "QPushButton#instructionButton:hover {"
-                           "  background-color: %5;"
-                           "}"
-                           "QPushButton#instructionButton:pressed {"
-                           "  background-color: %6;"
-                           "}"
-
-                           // Поля ввода
-                           "QPlainTextEdit, QLineEdit {"
-                           "  background-color: %10;"
-                           "  color: %2;"
-                           "  border: 1px solid %4;"
-                           "  border-radius: 4px;"
-                           "  padding: 4px;"
-                           "  selection-background-color: %11;"
-                           "  selection-color: %2;"
-                           "}"
-                           "QPlainTextEdit:focus, QLineEdit:focus {"
-                           "  border-color: %3;"
-                           "}"
-                           "QPlainTextEdit:disabled, QLineEdit:disabled {"
-                           "  background-color: %7;"
-                           "  color: %8;"
-                           "  border-color: %9;"
-                           "}"
-
-                           // QComboBox
-                           "QComboBox {"
-                           "  background-color: %10;"
-                           "  color: %2;"
-                           "  border: 1px solid %4;"
-                           "  border-radius: 4px;"
-                           "  padding: 5px 12px;"
-                           "  min-width: 80px;"
-                           "}"
-                           "QComboBox:hover {"
-                           "  border-color: %3;"
-                           "}"
-                           "QComboBox::drop-down {"
-                           "  border: none;"
-                           "}"
-                           "QComboBox::down-arrow {"
-                           "  image: none;"
-                           "  border: none;"
-                           "  width: 0px;"
-                           "}"
-                           "QComboBox QAbstractItemView {"
-                           "  background-color: %10;"
-                           "  color: %2;"
-                           "  border: 1px solid %4;"
-                           "  selection-background-color: %11;"
-                           "}"
-
-                           // QLabel
-                           "QLabel {"
-                           "  color: %2;"
-                           "  background-color: transparent;"
-                           "}"
-
-                           // QRadioButton
-                           "QRadioButton {"
-                           "  color: %2;"
-                           "  background-color: transparent;"
-                           "  spacing: 8px;"
-                           "}"
-                           "QRadioButton::indicator {"
-                           "  width: 16px;"
-                           "  height: 16px;"
-                           "  border-radius: 8px;"
-                           "  border: 1px solid %4;"
-                           "  background-color: %10;"
-                           "}"
-                           "QRadioButton::indicator:checked {"
-                           "  background-color: %3;"
-                           "  border-color: %3;"
-                           "}"
-                           "QRadioButton::indicator:hover {"
-                           "  border-color: %3;"
-                           "}"
-                           "QRadioButton:disabled {"
-                           "  color: %8;"
-                           "}"
-
-                           // QMenu
-                           "QMenu {"
-                           "  background-color: %10;"
-                           "  color: %2;"
-                           "  border: 1px solid %4;"
-                           "}"
-                           "QMenu::item {"
-                           "  padding: 4px 20px;"
-                           "}"
-                           "QMenu::item:selected {"
-                           "  background-color: %11;"
-                           "}"
-                           "QMenu::separator {"
-                           "  height: 1px;"
-                           "  background-color: %9;"
-                           "  margin: 4px 8px;"
-                           "}")
-                           .arg(colors.background.name(),   // %1
-                                colors.textPrimary.name(),  // %2
-                                colors.primary.name(),      // %3
-                                colors.border.name(),       // %4
-                                colors.hover.name(),        // %5
-                                colors.pressed.name(),      // %6
-                                colors.surface.name(),      // %7
-                                colors.textDisabled.name(), // %8
-                                colors.divider.name(),      // %9
-                                colors.surface.name(),      // %10
-                                colors.selected.name());    // %11
-
+  // Единая таблица стилей
+  QString styleSheet = StyleManager::getGlobalStyleSheet(colors);
   qApp->setStyleSheet(styleSheet);
 }
 
@@ -330,10 +166,10 @@ void MainWindow::showLoadingPage() {
 
   topBarLayout->addStretch();
 
-  QLabel *themeLabel = new QLabel("Тема:", this);
+  QLabel *themeLabel = new QLabel("Тема: ", this);
   themeCombo = new QComboBox(this);
-  themeCombo->addItem("Тёмная");
-  themeCombo->addItem("Светлая");
+  themeCombo->addItem("☁ Тёмная");
+  themeCombo->addItem("☀ Светлая");
   topBarLayout->addWidget(themeLabel);
   topBarLayout->addWidget(themeCombo);
 

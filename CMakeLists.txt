@@ -14,6 +14,7 @@ set(SOURCES
     src/front/MainWindow.cpp
     src/front/TextEditWithSpellCheck.cpp
     src/front/ThemeManager.cpp
+    src/front/StyleManager.cpp
     src/front/LoadingPage.cpp
     src/back/vocab.cpp
     src/back/unistring.cpp
@@ -24,6 +25,7 @@ set(HEADERS
     src/front/MainWindow.hpp
     src/front/TextEditWithSpellCheck.hpp
     src/front/ThemeManager.hpp
+    src/front/StyleManager.hpp
     src/front/LoadingPage.hpp
     src/back/vocab.hpp
     src/back/unistring.hpp
