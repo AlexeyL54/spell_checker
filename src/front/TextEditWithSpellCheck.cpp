@@ -1,5 +1,4 @@
 #include "TextEditWithSpellCheck.hpp"
-#include "../back/unistring.hpp"
 #include "../back/vocab.hpp"
 #include "ThemeManager.hpp"
 #include <QApplication>
@@ -284,9 +283,8 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
   if (!vocab_)
     return result;
 
-  QRegularExpression wordRegex(
-      R"((?<=^|\s|[^\p{L}])[а-яА-ЯёЁa-zA-Z]+(?=$|\s|[^\p{L}]))");
-
+  // Регулярное выражение для поиска слов (только буквы)
+  QRegularExpression wordRegex(R"([А-Яа-яЁёA-Za-z]+)");
   QRegularExpressionMatchIterator it = wordRegex.globalMatch(text);
 
   while (it.hasNext()) {
@@ -302,25 +300,19 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
       continue;
 
     QString lowerWord = word.toLower();
-    std::string utf8Word = lowerWord.toUtf8().toStdString();
-    utf8::Unistring ustr(utf8Word);
 
     // Проверяем наличие в словаре (сравниваем в нижнем регистре)
-    if (vocab_->isInVocab(ustr)) {
+    if (vocab_->isInVocab(lowerWord)) {
       qDebug() << "слово есть в словаре, пропускаем";
       continue;
     }
 
-    qDebug() << "слово не найдено, ищем исправления для: " << ustr.to_string();
+    qDebug() << "слово не найдено, ищем исправления для: " << lowerWord;
 
     try {
-      std::vector<utf8::Unistring> suggestionsUtf8 =
-          vocab_->checkWordSpelling(ustr);
+      QVector<QString> suggestions = vocab_->checkWordSpelling(lowerWord);
 
-      QVector<QString> suggestions;
-      for (const Unistring &su : suggestionsUtf8) {
-        QString sug = QString::fromUtf8(su.to_string().c_str());
-        suggestions.append(sug);
+      for (const QString &sug : suggestions) {
         qDebug() << "предложение: " << sug;
       }
 

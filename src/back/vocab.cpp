@@ -1,19 +1,14 @@
 #include "vocab.hpp"
-#include "qobject.h"
-#include "unistring.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
-#include <cstdint>
-#include <cstdio>
-#include <cwchar>
 #include <fstream>
 #include <iostream>
-#include <math.h>
-#include <string>
 #include <unordered_set>
 
 #include <QDebug>
 #include <QElapsedTimer>
+#include <QTextStream>
 #include <QThread>
 
 using std::getline;
@@ -21,19 +16,18 @@ using std::ifstream;
 using std::pair;
 using std::string;
 using std::unordered_set;
-using utf8::Unistring;
 
-Vocabulary::Vocabulary(const string &path, QObject *parent)
+Vocabulary::Vocabulary(const QString &path, QObject *parent)
     : QObject(parent), vocab_path(path) {}
 
 size_t Vocabulary::maxRowLength(ifstream &file) {
   size_t maxLen = 0;
   std::string line;
-  Unistring uline;
 
   while (getline(file, line)) {
-    if ((uline = Unistring(line)).length() > maxLen)
-      maxLen = uline.length();
+    QString qline = QString::fromUtf8(line.c_str());
+    if ((size_t)qline.length() > maxLen)
+      maxLen = qline.length();
   }
 
   file.clear();
@@ -50,10 +44,10 @@ void Vocabulary::loadVocabAsync() {
     timer.start();
 
     string line;
-    Unistring uline;
+    QString qline;
     size_t wline_hash;
 
-    ifstream file(vocab_path);
+    ifstream file(vocab_path.toStdString());
     if (!file.is_open()) {
       emit loadError(QString("Не удалось открыть файл словаря"));
       return;
@@ -78,23 +72,18 @@ void Vocabulary::loadVocabAsync() {
       if (line.empty())
         continue;
 
-      uline = Unistring(line);
-      wline_hash = createHashCode(uline);
+      qline = QString::fromUtf8(line.c_str());
+      wline_hash = createHashCode(qline);
 
-      size_t len = uline.length();
-      if (len >= vocab_hash_table.size()) {
+      size_t len = qline.length();
+      if (len >= (size_t)vocab_hash_table.size()) {
         vocab_hash_table.resize(len + 1);
       }
 
-      vocab_hash_table[len][wline_hash] = uline;
-      vocab_words.push_back(uline);
+      vocab_hash_table[len][wline_hash] = qline;
+      vocab_words.append(qline);
 
       wordCount++;
-
-      // Каждые 10000 слов отправляем прогресс
-      /*      if (wordCount % 10000 == 0) {
-              emit loadProgress(wordCount);
-            }*/
     }
 
     file.close();
@@ -115,10 +104,10 @@ void Vocabulary::loadVocabAsync() {
 
 void Vocabulary::loadVocab() {
   string line;
-  Unistring uline;
+  QString qline;
   size_t wline_hash;
 
-  ifstream file(vocab_path);
+  ifstream file(vocab_path.toStdString());
   if (!file.is_open()) {
     return;
   }
@@ -127,67 +116,55 @@ void Vocabulary::loadVocab() {
   vocab_words.clear();
   trigram_index.clear();
 
-  // Вместо этого будем расширять вектор по мере необходимости
-  vocab_hash_table.reserve(50); // Начальная емкость
+  vocab_hash_table.reserve(50);
 
-  // Быстрый подсчет строк для резервирования памяти
   file.seekg(0, std::ios::end);
   size_t file_size = file.tellg();
   file.seekg(0, std::ios::beg);
 
-  // Приблизительное количество строк (консервативная оценка)
-  size_t estimated_lines = file_size / 8; // Средняя длина слова ~8 байт
+  size_t estimated_lines = file_size / 8;
   vocab_words.reserve(estimated_lines);
 
   while (getline(file, line)) {
-    uline = Unistring(line);
-    wline_hash = createHashCode(uline);
+    qline = QString::fromUtf8(line.c_str());
+    wline_hash = createHashCode(qline);
 
-    size_t len = uline.length();
-    if (len >= vocab_hash_table.size()) {
+    size_t len = qline.length();
+    if (len >= (size_t)vocab_hash_table.size()) {
       vocab_hash_table.resize(len + 1);
     }
 
-    vocab_hash_table[len][wline_hash] = uline;
-    vocab_words.push_back(uline);
+    vocab_hash_table[len][wline_hash] = qline;
+    vocab_words.append(qline);
   }
 
   file.close();
   buildTrigramIndex();
 }
 
-size_t Vocabulary::createHashCode(const Unistring &str) {
+size_t Vocabulary::createHashCode(const QString &str) {
   size_t hash = 5381;
   int length = str.length();
 
   for (int i = 0; i < length; i++) {
-    hash = ((hash << 5) + hash) + utf8::unichar_to_int(str[i]);
+    hash = ((hash << 5) + hash) + str[i].unicode();
   }
 
   return hash;
 }
 
-/*size_t Vocabulary::createHashCode(const Unistring &str) {
-  size_t hash = 5381;
-  const string &bytes = str.to_string();
-  for (unsigned char c : bytes) {
-    hash = ((hash << 5) + hash) + c;
-  }
-  return hash;
-}*/
-
-vector<unordered_map<size_t, Unistring>> Vocabulary::getVocabHashTable() {
+QVector<QHash<size_t, QString>> Vocabulary::getVocabHashTable() {
   return vocab_hash_table;
 }
 
-bool Vocabulary::isInVocab(const Unistring &str) {
+bool Vocabulary::isInVocab(const QString &str) {
   size_t key = createHashCode(str);
   size_t index = str.length();
 
-  if (index < vocab_hash_table.size()) {
+  if (index < (size_t)vocab_hash_table.size()) {
     auto it = vocab_hash_table[index].find(key);
     if (it != vocab_hash_table[index].end()) {
-      return it->second == str;
+      return it.value() == str;
     }
   }
 
@@ -195,20 +172,23 @@ bool Vocabulary::isInVocab(const Unistring &str) {
 }
 
 void Vocabulary::buildTrigramIndex() {
-  for (size_t idx = 0; idx < vocab_words.size(); ++idx) {
+  for (int idx = 0; idx < vocab_words.size(); ++idx) {
     const auto &word = vocab_words[idx];
     auto trigrams = extractTrigrams(word);
 
     // Удаляем дубликаты триграмм для одного слова
-    unordered_set<uint64_t> unique_trigrams(trigrams.begin(), trigrams.end());
+    unordered_set<uint64_t> unique_trigrams;
+    for (uint64_t trigram : trigrams) {
+      unique_trigrams.insert(trigram);
+    }
 
     for (uint64_t trigram : unique_trigrams) {
-      trigram_index[trigram].push_back(idx);
+      trigram_index[trigram].append(idx);
     }
   }
 }
 
-uint64_t Vocabulary::hashTrigram(int c1, int c2, int c3) {
+uint64_t Vocabulary::hashTrigram(uint32_t c1, uint32_t c2, uint32_t c3) {
   // Используем 64-битный хэш для избежания коллизий
   // Комбинируем три 32-битных кода символов в один 64-битный хэш
   uint64_t hash = 0;
@@ -218,25 +198,25 @@ uint64_t Vocabulary::hashTrigram(int c1, int c2, int c3) {
   return hash;
 }
 
-vector<uint64_t> Vocabulary::extractTrigrams(const Unistring &word) {
-  vector<uint64_t> trigrams;
-  size_t len = word.length();
+QVector<uint64_t> Vocabulary::extractTrigrams(const QString &word) {
+  QVector<uint64_t> trigrams;
+  int len = word.length();
 
   if (len == 0) {
     return trigrams;
   }
 
   // Получаем коды символов
-  vector<int> char_codes;
-  for (size_t i = 0; i < len; ++i) {
-    char_codes.push_back(utf8::unichar_to_int(word[i]));
+  QVector<uint32_t> char_codes;
+  for (int i = 0; i < len; ++i) {
+    char_codes.append(word[i].unicode());
   }
 
   // Для односимвольных слов
   if (len == 1) {
     // Маркеры: #С#
     uint64_t trigram = hashTrigram('#', char_codes[0], '#');
-    trigrams.push_back(trigram);
+    trigrams.append(trigram);
     return trigrams;
   }
 
@@ -244,48 +224,48 @@ vector<uint64_t> Vocabulary::extractTrigrams(const Unistring &word) {
   if (len == 2) {
     // Маркеры начала: #СС
     uint64_t trigram1 = hashTrigram('#', char_codes[0], char_codes[1]);
-    trigrams.push_back(trigram1);
+    trigrams.append(trigram1);
 
     // Маркеры конца: СС#
     uint64_t trigram2 = hashTrigram(char_codes[0], char_codes[1], '#');
-    trigrams.push_back(trigram2);
+    trigrams.append(trigram2);
 
     return trigrams;
   }
 
   // Для слов длиной 3 и более - извлекаем все перекрывающиеся триграммы
-  for (size_t i = 0; i <= len - 3; ++i) {
+  for (int i = 0; i <= len - 3; ++i) {
     uint64_t trigram =
         hashTrigram(char_codes[i], char_codes[i + 1], char_codes[i + 2]);
-    trigrams.push_back(trigram);
+    trigrams.append(trigram);
   }
 
   // Добавляем начальную триграмму с маркером начала
   uint64_t start_trigram = hashTrigram('#', char_codes[0], char_codes[1]);
-  trigrams.push_back(start_trigram);
+  trigrams.append(start_trigram);
 
   // Добавляем конечную триграмму с маркером конца
   uint64_t end_trigram =
       hashTrigram(char_codes[len - 2], char_codes[len - 1], '#');
-  trigrams.push_back(end_trigram);
+  trigrams.append(end_trigram);
 
   // Для слов длины 3 также добавляем триграммы с маркерами для лучшего поиска
   if (len == 3) {
     uint64_t full_start = hashTrigram('#', char_codes[0], char_codes[1]);
     uint64_t full_end = hashTrigram(char_codes[1], char_codes[2], '#');
-    trigrams.push_back(full_start);
-    trigrams.push_back(full_end);
+    trigrams.append(full_start);
+    trigrams.append(full_end);
   }
 
   return trigrams;
 }
 
-uint32_t Vocabulary::getLevensteinDistance(const Unistring &word1,
-                                           const Unistring &word2) {
-  size_t m = word1.length();
-  size_t n = word2.length();
+uint32_t Vocabulary::getLevensteinDistance(const QString &word1,
+                                           const QString &word2) {
+  int m = word1.length();
+  int n = word2.length();
 
-  int length_diff = static_cast<int>(m) - static_cast<int>(n);
+  int length_diff = m - n;
   if (std::abs(length_diff) > static_cast<int>(MAXLEVENSTEINDIST)) {
     return MAXLEVENSTEINDIST + 1;
   }
@@ -297,22 +277,22 @@ uint32_t Vocabulary::getLevensteinDistance(const Unistring &word1,
   std::vector<uint32_t> prev(n + 1, 0);
   std::vector<uint32_t> curr(n + 1, 0);
 
-  for (size_t j = 0; j <= n; ++j) {
+  for (int j = 0; j <= n; ++j) {
     prev[j] = j;
   }
 
-  for (size_t i = 1; i <= m; ++i) {
+  for (int i = 1; i <= m; ++i) {
     curr[0] = i;
     uint32_t min_in_row = curr[0];
 
-    size_t j_start = (i > MAXLEVENSTEINDIST) ? i - MAXLEVENSTEINDIST : 1;
-    size_t j_end = std::min(n, i + MAXLEVENSTEINDIST);
+    int j_start = (i > (int)MAXLEVENSTEINDIST) ? i - MAXLEVENSTEINDIST : 1;
+    int j_end = std::min(n, i + (int)MAXLEVENSTEINDIST);
 
-    for (size_t j = 1; j < j_start && j <= n; ++j) {
+    for (int j = 1; j < j_start && j <= n; ++j) {
       curr[j] = MAXLEVENSTEINDIST + 1;
     }
 
-    for (size_t j = j_start; j <= j_end; ++j) {
+    for (int j = j_start; j <= j_end; ++j) {
       uint32_t cost = (word1[i - 1] != word2[j - 1]) ? 1 : 0;
 
       curr[j] = std::min({curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost});
@@ -322,7 +302,7 @@ uint32_t Vocabulary::getLevensteinDistance(const Unistring &word1,
       }
     }
 
-    for (size_t j = j_end + 1; j <= n; ++j) {
+    for (int j = j_end + 1; j <= n; ++j) {
       curr[j] = MAXLEVENSTEINDIST + 1;
     }
 
@@ -336,8 +316,8 @@ uint32_t Vocabulary::getLevensteinDistance(const Unistring &word1,
   return prev[n];
 }
 
-std::vector<Unistring> Vocabulary::checkWordSpelling(const Unistring &word) {
-  std::vector<Unistring> corrections;
+QVector<QString> Vocabulary::checkWordSpelling(const QString &word) {
+  QVector<QString> corrections;
 
   if (isInVocab(word)) {
     return corrections;
@@ -348,74 +328,75 @@ std::vector<Unistring> Vocabulary::checkWordSpelling(const Unistring &word) {
   }
 
   // Приводим слово к нижнему регистру для поиска
-  Unistring lower_word = word.to_lower();
+  QString lower_word = word.toLower();
   auto word_trigrams = extractTrigrams(lower_word);
 
-  if (word_trigrams.empty()) {
+  if (word_trigrams.isEmpty()) {
     return corrections;
   }
 
   // Собираем кандидатов на основе совпадения триграмм
-  unordered_map<size_t, uint8_t> candidate_scores;
+  QHash<int, uint8_t> candidate_scores;
 
   for (uint64_t trigram : word_trigrams) {
     auto it = trigram_index.find(trigram);
     if (it != trigram_index.end()) {
-      for (size_t idx : it->second) {
+      for (int idx : it.value()) {
         candidate_scores[idx]++;
       }
     }
   }
 
-  if (candidate_scores.empty()) {
+  if (candidate_scores.isEmpty()) {
     return corrections;
   }
 
   // Отбираем кандидатов с достаточным количеством совпадений
-  std::vector<std::pair<size_t, uint8_t>> candidates;
+  QVector<QPair<int, uint8_t>> candidates;
   candidates.reserve(candidate_scores.size());
 
-  for (const auto &[idx, score] : candidate_scores) {
-    if (score >= MIN_TRIGRAM_MATCHES) {
-      candidates.emplace_back(idx, score);
+  for (auto it = candidate_scores.begin(); it != candidate_scores.end(); ++it) {
+    if (it.value() >= MIN_TRIGRAM_MATCHES) {
+      candidates.append(qMakePair(it.key(), it.value()));
     }
   }
 
   // Сортируем по убыванию score (чем больше совпадений триграмм, тем лучше)
   std::sort(candidates.begin(), candidates.end(),
-            [](const auto &a, const auto &b) { return a.second > b.second; });
+            [](const QPair<int, uint8_t> &a, const QPair<int, uint8_t> &b) {
+              return a.second > b.second;
+            });
 
   // Берём только топ кандидатов для вычисления расстояния Левенштейна
-  size_t num_candidates =
-      std::min(candidates.size(), static_cast<size_t>(MAX_CANDIDATES));
+  size_t num_candidates = std::min<size_t>(candidates.size(), MAX_CANDIDATES);
 
   // Вычисляем расстояние Левенштейна для топ-кандидатов
-  std::vector<std::pair<uint32_t, Unistring>> distance_results;
+  QVector<QPair<uint32_t, QString>> distance_results;
   distance_results.reserve(num_candidates);
 
   for (size_t i = 0; i < num_candidates; ++i) {
-    size_t idx = candidates[i].first;
+    int idx = candidates[i].first;
     uint32_t dist = getLevensteinDistance(lower_word, vocab_words[idx]);
 
     if (dist <= MAXLEVENSTEINDIST) {
-      distance_results.emplace_back(dist, vocab_words[idx]);
+      distance_results.append(qMakePair(dist, vocab_words[idx]));
     }
   }
 
   // Сортируем по расстоянию Левенштейна
-  std::sort(distance_results.begin(), distance_results.end(),
-            [](const auto &a, const auto &b) {
-              if (a.first != b.first) {
-                return a.first < b.first;
-              }
-              return a.second.length() < b.second.length();
-            });
+  std::sort(
+      distance_results.begin(), distance_results.end(),
+      [](const QPair<uint32_t, QString> &a, const QPair<uint32_t, QString> &b) {
+        if (a.first != b.first) {
+          return a.first < b.first;
+        }
+        return a.second.length() < b.second.length();
+      });
 
   const uint16_t maxCorrections = 5;
-  for (size_t i = 0; i < std::min(distance_results.size(),
-                                  static_cast<size_t>(maxCorrections));
-       ++i) {
-    corrections.push_back(distance_results[i].second);
+  for (size_t i = 0;
+       i < std::min<size_t>(distance_results.size(), maxCorrections); ++i) {
+    corrections.append(distance_results[i].second);
   }
 
   return corrections;

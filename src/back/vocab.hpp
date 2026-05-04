@@ -1,27 +1,21 @@
 #pragma once
 
-#include "qobject.h"
-#include "qtmetamacros.h"
-#include "unistring.hpp"
-#include <cstddef>
-#include <cstdint>
-#include <fstream>
-#include <memory>
-#include <string>
-#include <sys/types.h>
-#include <unordered_map>
-#include <vector>
-
+#include <QAtomicInt>
+#include <QHash>
 #include <QObject>
 #include <QString>
+#include <QVector>
 #include <atomic>
+#include <fstream>
+#include <memory>
+#include <unordered_map>
+#include <vector>
 
 using std::ifstream;
 using std::shared_ptr;
 using std::string;
 using std::unordered_map;
 using std::vector;
-using utf8::Unistring;
 
 /**
  * @brief Класс для работы со словарём и проверки орфографии
@@ -40,7 +34,7 @@ public:
    * Инициализирует путь к файлу словаря и настраивает параметры
    * @param path Путь к файлу словаря
    */
-  Vocabulary(const string &path, QObject *parent = nullptr);
+  Vocabulary(const QString &path, QObject *parent = nullptr);
 
   /**
    * @brief Загрузить словарь из файла
@@ -59,21 +53,21 @@ public:
    * @param str Ссылка на строку
    * @return Хэш код строки
    */
-  size_t createHashCode(const Unistring &str);
+  size_t createHashCode(const QString &str);
 
   /**
    * @brief Получить копию хэш-таблицы словаря
    * @return Хэш-таблица, где индекс - длина слова, а значение - маппинг хэша на
    * слово
    */
-  vector<unordered_map<size_t, Unistring>> getVocabHashTable();
+  QVector<QHash<size_t, QString>> getVocabHashTable();
 
   /**
    * @brief Проверить наличие строки в словаре
    * @param str Ссылка на строку для проверки
    * @return true, если строка есть в словаре, иначе false
    */
-  bool isInVocab(const Unistring &str);
+  bool isInVocab(const QString &str);
 
   /**
    * @brief Проверить орфографию слова и предложить исправления
@@ -83,33 +77,29 @@ public:
    * @param word Слово для проверки
    * @return Вектор слов-исправлений, отсортированных по релевантности
    */
-  std::vector<Unistring> checkWordSpelling(const Unistring &word);
+  QVector<QString> checkWordSpelling(const QString &word);
 
 signals:
   void loadStarted();
-  void loadProgress(int wordsLoaded); // Только количество загруженных слов
+  void loadProgress(int wordsLoaded);
   void loadFinished();
   void loadError(const QString &error);
 
 private:
   std::atomic<bool> isLoaded_{false};
 
-  vector<unordered_map<size_t, Unistring>>
+  QVector<QHash<size_t, QString>>
       vocab_hash_table; ///< Хэш-таблица строк словаря (индекс - длина слова)
-  ///
-  vector<Unistring> vocab_words; ///< Плоский список всех слов словаря
-  unordered_map<uint64_t, vector<size_t>>
-
+  QVector<QString> vocab_words; ///< Плоский список всех слов словаря
+  QHash<uint64_t, QVector<int>>
       trigram_index; ///< Индекс триграмм: триграмма -> список индексов слов
 
-  const string vocab_path; ///< Путь к файлу словаря
+  const QString vocab_path; ///< Путь к файлу словаря
 
   const uint32_t MAXLEVENSTEINDIST =
       3; ///< Максимальное допустимое расстояние Левенштейна
-
   const uint16_t MAX_CANDIDATES =
       100; ///< Максимальное количество кандидатов для проверки
-
   const uint8_t MIN_TRIGRAM_MATCHES =
       2; ///< Минимальное количество совпадающих триграмм для кандидата
 
@@ -122,8 +112,7 @@ private:
    * @param word2 Второе слово
    * @return Расстояние Левенштейна
    */
-  uint32_t getLevensteinDistance(const Unistring &word1,
-                                 const Unistring &word2);
+  uint32_t getLevensteinDistance(const QString &word1, const QString &word2);
 
   /**
    * @brief Вычислить максимальную длину строки в файле
@@ -148,7 +137,7 @@ private:
    * @param word Слово для извлечения триграмм
    * @return Вектор хэшей триграмм
    */
-  vector<uint64_t> extractTrigrams(const Unistring &word);
+  QVector<uint64_t> extractTrigrams(const QString &word);
 
   /**
    * @brief Вычислить хэш для триграммы
@@ -159,5 +148,5 @@ private:
    * @param c3 Код третьего символа
    * @return Хэш триграммы
    */
-  uint64_t hashTrigram(int c1, int c2, int c3);
+  uint64_t hashTrigram(uint32_t c1, uint32_t c2, uint32_t c3);
 };
