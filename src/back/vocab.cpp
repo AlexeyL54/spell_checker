@@ -156,7 +156,7 @@ void Vocabulary::loadVocab() {
   buildTrigramIndex();
 }
 
-/*size_t Vocabulary::createHashCode(const Unistring &str) {
+size_t Vocabulary::createHashCode(const Unistring &str) {
   size_t hash = 5381;
   int length = str.length();
 
@@ -165,16 +165,16 @@ void Vocabulary::loadVocab() {
   }
 
   return hash;
-}*/
+}
 
-size_t Vocabulary::createHashCode(const Unistring &str) {
+/*size_t Vocabulary::createHashCode(const Unistring &str) {
   size_t hash = 5381;
   const string &bytes = str.to_string();
   for (unsigned char c : bytes) {
     hash = ((hash << 5) + hash) + c;
   }
   return hash;
-}
+}*/
 
 vector<unordered_map<size_t, Unistring>> Vocabulary::getVocabHashTable() {
   return vocab_hash_table;
