@@ -1,5 +1,6 @@
 #include "InputPage.hpp"
 #include "InstructionText.hpp"
+#include "ThemeManager.hpp"
 #include <QApplication>
 #include <QClipboard>
 #include <QDir>
@@ -8,7 +9,8 @@
 #include <QMessageBox>
 #include <QTextStream>
 
-InputPage::InputPage(QWidget *parent) : QWidget(parent), lastErrorCount_(-1) {
+InputPage::InputPage(const ThemeColors &colors, QWidget *parent)
+    : QWidget(parent), currentColors_(colors), lastErrorCount_(-1) {
   setupMainLayout();
   setupContentRow();
   setupContentColumn();
@@ -161,7 +163,7 @@ void InputPage::setupKeyboardPage() {
   layoutKeyboard->setContentsMargins(0, 0, 0, 0);
   layoutKeyboard->setSpacing(0);
 
-  textInput = new TextEditWithSpellCheck(contentColumn);
+  textInput = new TextEditWithSpellCheck(currentColors_, contentColumn);
   textInput->setPlaceholderText("Введите текст для анализа...");
   textInput->setMinimumHeight(200);
   layoutKeyboard->addWidget(textInput);

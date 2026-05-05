@@ -13,12 +13,13 @@
 #include <QWidget>
 
 #include "TextEditWithSpellCheck.hpp"
+#include "ThemeManager.hpp"
 
 class InputPage : public QWidget {
   Q_OBJECT
 
 public:
-  explicit InputPage(QWidget *parent = nullptr);
+  explicit InputPage(const ThemeColors &colors, QWidget *parent = nullptr);
 
   TextEditWithSpellCheck *getTextEdit() const;
   bool isKeyboardMode() const;

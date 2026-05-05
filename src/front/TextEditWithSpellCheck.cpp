@@ -10,8 +10,9 @@
 #include <QTextCharFormat>
 #include <QTextCursor>
 
-TextEditWithSpellCheck::TextEditWithSpellCheck(QWidget *parent)
-    : QPlainTextEdit(parent), selfUpdating_(false) {
+TextEditWithSpellCheck::TextEditWithSpellCheck(const ThemeColors &colors,
+                                               QWidget *parent)
+    : QPlainTextEdit(parent), currentColors_(colors), selfUpdating_(false) {
   connect(this, &QPlainTextEdit::textChanged, this,
           &TextEditWithSpellCheck::onTextChanged);
   setUndoRedoEnabled(true);
@@ -396,7 +397,6 @@ void TextEditWithSpellCheck::clearFormats() {
 }
 
 void TextEditWithSpellCheck::updateColors() {
-  // Перерисовываем ошибки с новыми цветами, если они есть
   if (!errors_.isEmpty()) {
     highlightErrors();
   }

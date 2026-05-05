@@ -1,5 +1,6 @@
 #include "MainWindow.hpp"
 #include "StyleManager.hpp"
+#include "ThemeManager.hpp"
 #include <QApplication>
 #include <QClipboard>
 #include <QFile>
@@ -14,22 +15,19 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
   setWindowTitle("Анализатор текста");
   resize(1200, 700);
 
+  themeManager = new ThemeManager(this);
+
   setupUI();         // Теперь только создаёт виджеты, но не layout
   showLoadingPage(); // Создаёт layout и показывает загрузку
 
-  // Создаём менеджер тем
-  themeManager = new ThemeManager(this);
   setupThemeSelector();
   applyTheme(themeManager->getThemeColors());
 
   // Создаём словарь и загружаем асинхронно
   vocabulary = new Vocabulary("../vocab/russian-words/russian.txt", this);
 
-  // Подключаем сигналы
   connect(vocabulary, &Vocabulary::loadStarted, this,
           &MainWindow::onLoadStarted);
-  /*connect(vocabulary, &Vocabulary::loadProgress, this,
-          &MainWindow::onLoadProgress);*/
   connect(vocabulary, &Vocabulary::loadFinished, this,
           &MainWindow::onLoadFinished);
   connect(vocabulary, &Vocabulary::loadError, this, &MainWindow::onLoadError);
@@ -40,17 +38,15 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
 MainWindow::~MainWindow() { delete vocabulary; }
 
 void MainWindow::setupUI() {
-  // НЕ СОЗДАЁМ layout здесь, а только создаём виджеты
-  // Layout будет создан в showLoadingPage()
-
   // Верхняя панель будет создана в showMainContent()
   topBar = nullptr;
   themeCombo = nullptr;
 
-  // Страница ввода
-  inputPage = new InputPage(this);
+  ThemeColors currentColors = themeManager->getThemeColors();
 
-  // Подключаем сигналы InputPage к слотам MainWindow
+  // Страница ввода
+  inputPage = new InputPage(currentColors, this);
+
   connect(inputPage, &InputPage::checkRequested, this,
           &MainWindow::onCheckRequested);
   connect(inputPage, &InputPage::fixRequested, this,

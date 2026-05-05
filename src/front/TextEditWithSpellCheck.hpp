@@ -32,7 +32,8 @@ class TextEditWithSpellCheck : public QPlainTextEdit {
   Q_OBJECT
 
 public:
-  explicit TextEditWithSpellCheck(QWidget *parent = nullptr);
+  explicit TextEditWithSpellCheck(const ThemeColors &colors,
+                                  QWidget *parent = nullptr);
   ~TextEditWithSpellCheck();
 
   /**
@@ -81,6 +82,11 @@ public:
    * @brief Устанавливает текст программы.
    */
   void setText(const QString &text);
+
+  /**
+   * Обновляет цвета подсветки
+   */
+  void updateColors();
 
 protected:
   void mousePressEvent(QMouseEvent *event) override;
@@ -149,11 +155,6 @@ private:
    * Очищает всё форматирование документа
    */
   void clearFormats();
-
-  /**
-   * Обновляет цвета подсветки
-   */
-  void updateColors();
 
   Vocabulary *vocab_ = nullptr;
   QVector<SpellError> errors_; // Текущие ошибки
