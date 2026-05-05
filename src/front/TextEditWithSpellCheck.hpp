@@ -141,7 +141,7 @@ private:
   void replaceWordAt(int start, int length, const QString &newWord);
 
   /**
-   * Применяет формат к диапазону
+   * Применяет форматирование к диапазону
    */
   void applyFormatToRange(int start, int length, const QTextCharFormat &format);
 

@@ -21,7 +21,6 @@ set(PROJECT_HEADERS
   ../src/back/vocab.hpp
 )
 
-# Функция для создания теста
 function(add_spellchecker_test TEST_NAME TEST_FILE)
   add_executable(${TEST_NAME} 
     ${TEST_FILE}

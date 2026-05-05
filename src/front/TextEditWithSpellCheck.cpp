@@ -38,7 +38,7 @@ void TextEditWithSpellCheck::performSpellCheck() {
   if (!hasOriginal_) {
     originalText_ = toPlainText();
     hasOriginal_ = true;
-    emit canRevertChanged(true); // Добавляем сигнал
+    emit canRevertChanged(true);
   }
 
   // Очищаем предыдущее форматирование и списки
@@ -49,7 +49,6 @@ void TextEditWithSpellCheck::performSpellCheck() {
   errors_ = findErrors(text);
   highlightErrors();
 
-  qDebug() << "Spell check completed, found" << errors_.size() << "errors";
   emit spellCheckCompleted(errors_.size());
 }
 
@@ -63,7 +62,7 @@ void TextEditWithSpellCheck::applyFirstCorrections() {
   if (!hasOriginal_) {
     originalText_ = toPlainText();
     hasOriginal_ = true;
-    emit canRevertChanged(true); // Добавляем сигнал
+    emit canRevertChanged(true);
   }
 
   // Находим актуальные ошибки в текущем тексте
@@ -93,13 +92,9 @@ void TextEditWithSpellCheck::applyFirstCorrections() {
   clearFormats();
   highlightFixedPositions();
 
-  // Очищаем список ошибок, так как после исправления они больше не актуальны
   errors_.clear();
-
   selfUpdating_ = false;
-
-  // После исправления текст изменился, но originalText_ остался для отмены
-  emit spellCheckCompleted(0); // Ошибок больше нет
+  emit spellCheckCompleted(0);
 }
 
 void TextEditWithSpellCheck::revertToOriginal() {
@@ -239,8 +234,7 @@ QString TextEditWithSpellCheck::preserveCase(const QString &originalWord,
     return result;
   }
 
-  // В остальных случаях возвращаем исправленное слово как есть (обычно в нижнем
-  // регистре)
+  // В остальных случаях возвращаем исправленное слово как есть
   return correctedWord;
 }
 
@@ -283,7 +277,6 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
   if (!vocab_)
     return result;
 
-  // Регулярное выражение для поиска слов (только буквы)
   QRegularExpression wordRegex(R"([А-Яа-яЁёA-Za-z]+)");
   QRegularExpressionMatchIterator it = wordRegex.globalMatch(text);
 
@@ -293,9 +286,7 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
     int length = match.capturedLength();
     QString word = match.captured();
 
-    qDebug() << "word: " << word;
-
-    // Пропускаем игнорируемые слова (сравниваем в нижнем регистре)
+    // Пропускаем игнорируемые слова
     if (isWordIgnored(word))
       continue;
 
@@ -303,35 +294,27 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
 
     // Проверяем наличие в словаре (сравниваем в нижнем регистре)
     if (vocab_->isInVocab(lowerWord)) {
-      qDebug() << "слово есть в словаре, пропускаем";
       continue;
     }
-
-    qDebug() << "слово не найдено, ищем исправления для: " << lowerWord;
 
     try {
       QVector<QString> suggestions = vocab_->checkWordSpelling(lowerWord);
 
       for (const QString &sug : suggestions) {
-        qDebug() << "предложение: " << sug;
       }
 
       if (!suggestions.isEmpty()) {
         // Сохраняем оригинальное слово (с сохранением регистра)
         result.append({start, length, word, suggestions});
       } else {
-        qDebug() << "нет предложений для: " << word;
       }
     } catch (const std::exception &e) {
-      qDebug() << "Exception in findErrors:" << e.what();
       continue;
     } catch (...) {
-      qDebug() << "Unknown exception in findErrors";
       continue;
     }
   }
 
-  qDebug() << "Найдено ошибок:" << result.size();
   return result;
 }
 
@@ -361,7 +344,8 @@ void TextEditWithSpellCheck::applyFormatToRange(int start, int length,
   if (!doc)
     return;
 
-  int docLength = doc->characterCount() - 1; // -1 для символа конца документа
+  // -1 для символа конца документа
+  int docLength = doc->characterCount() - 1;
   if (start >= docLength)
     return;
 
@@ -373,16 +357,14 @@ void TextEditWithSpellCheck::applyFormatToRange(int start, int length,
   if (actualLength <= 0)
     return;
 
-  // Безопасное применение формата
+  // Применение форматирования
   QTextCursor cursor(doc);
   cursor.setPosition(start);
   cursor.setPosition(start + actualLength, QTextCursor::KeepAnchor);
 
-  // Проверяем, что позиции валидны
   if (cursor.position() == cursor.anchor())
     return;
 
-  // Блокируем сигналы, чтобы избежать рекурсии
   doc->blockSignals(true);
   cursor.mergeCharFormat(format);
   doc->blockSignals(false);
@@ -393,15 +375,14 @@ void TextEditWithSpellCheck::clearFormats() {
   if (!doc)
     return;
 
-  // Безопасная очистка всех форматов
+  // Очистка форматирования
   QTextCursor cursor(doc);
   cursor.select(QTextCursor::Document);
 
-  // Создаём базовый формат без подчёркивания
+  // Создаём базовое форматирование без подчёркивания
   QTextCharFormat defaultFormat;
   defaultFormat.setUnderlineStyle(QTextCharFormat::NoUnderline);
 
-  // Применяем безопасно - оборачиваем в блокировку обновлений
   doc->blockSignals(true);
   cursor.mergeCharFormat(defaultFormat);
   doc->blockSignals(false);

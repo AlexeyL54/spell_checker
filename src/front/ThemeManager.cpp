@@ -40,7 +40,8 @@ ThemeColors ThemeManager::loadTheme(Theme theme) const {
     colors.selected = QColor(0, 102, 179); // #0066b3
 
     // Цвета для проверки орфографии
-    colors.spellError = QColor(255, 80, 80);  // #ff5050
+    colors.spellError = QColor(255, 50, 50); // #ff3232
+    // colors.spellError = QColor(255, 80, 80);  // #ff5050
     colors.spellFixed = QColor(80, 180, 255); // #50b4ff
 
   } else {
