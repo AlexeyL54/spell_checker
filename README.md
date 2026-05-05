@@ -74,7 +74,7 @@
 
 ```bash
 git clone https://github.com/AlexeyL54/spell_checker.git
-cd SpellChecker
+cd spell_checker
 
 mkdir build
 cd build
