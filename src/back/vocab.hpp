@@ -42,8 +42,6 @@ public:
    * Читает слова из файла, строит хэш-таблицу для быстрого поиска
    * и создаёт индекс триграмм для эффективного поиска исправлений
    */
-  void loadVocab();
-
   void loadVocabAsync();
 
   bool isLoaded() const { return isLoaded_; }

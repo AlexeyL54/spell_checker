@@ -103,46 +103,6 @@ void Vocabulary::loadVocabAsync() {
   thread->start();
 }
 
-void Vocabulary::loadVocab() {
-  string line;
-  QString qline;
-  size_t wline_hash;
-
-  ifstream file(vocab_path.toStdString());
-  if (!file.is_open()) {
-    return;
-  }
-
-  vocab_hash_table.clear();
-  vocab_words.clear();
-  trigram_index.clear();
-
-  vocab_hash_table.reserve(50);
-
-  file.seekg(0, std::ios::end);
-  size_t file_size = file.tellg();
-  file.seekg(0, std::ios::beg);
-
-  size_t estimated_lines = file_size / 8;
-  vocab_words.reserve(estimated_lines);
-
-  while (getline(file, line)) {
-    qline = QString::fromUtf8(line.c_str());
-    wline_hash = createHashCode(qline);
-
-    size_t len = qline.length();
-    if (len >= (size_t)vocab_hash_table.size()) {
-      vocab_hash_table.resize(len + 1);
-    }
-
-    vocab_hash_table[len][wline_hash] = qline;
-    vocab_words.append(qline);
-  }
-
-  file.close();
-  buildTrigramIndex();
-}
-
 size_t Vocabulary::createHashCode(const QString &str) {
   size_t hash = 5381;
   int length = str.length();

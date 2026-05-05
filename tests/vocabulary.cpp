@@ -112,7 +112,6 @@ TEST(VOCABULARY, loadVocabAsync) {
   vocab.loadVocabAsync();
 
   bool finished = finishedSpy.wait(5000);
-
   ASSERT_TRUE(finished) << "loadFinished not received";
   ASSERT_TRUE(errorSpy.isEmpty())
       << "Error: "
@@ -136,7 +135,6 @@ TEST(VOCABULARY, isInVocab) {
   vocab.loadVocabAsync();
 
   bool finished = finishedSpy.wait(60000);
-
   ASSERT_TRUE(finished) << "loadFinished not received";
   ASSERT_TRUE(errorSpy.isEmpty())
       << "Error: "
@@ -153,7 +151,16 @@ TEST(VOCABULARY, checkWordSpelling) {
   prepareTestVocab();
 
   Vocabulary vocab = Vocabulary(TEST_VOCAB_PATH);
-  vocab.loadVocab();
+  QSignalSpy finishedSpy(&vocab, &Vocabulary::loadFinished);
+  QSignalSpy errorSpy(&vocab, &Vocabulary::loadError);
+  vocab.loadVocabAsync();
+
+  bool finished = finishedSpy.wait(5000);
+  ASSERT_TRUE(finished) << "loadFinished not received";
+  ASSERT_TRUE(errorSpy.isEmpty())
+      << "Error: "
+      << (errorSpy.isEmpty() ? ""
+                             : errorSpy.at(0).at(0).toString().toStdString());
 
   QVector<QString> corrections1 = vocab.checkWordSpelling("прграмма");
   ASSERT_FALSE(corrections1.empty());
@@ -196,7 +203,16 @@ TEST(VOCABULARY, realPerformanceBenchmark) {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
   Vocabulary vocab = Vocabulary(REAL_DICT_PATH);
-  vocab.loadVocab();
+  QSignalSpy finishedSpy(&vocab, &Vocabulary::loadFinished);
+  QSignalSpy errorSpy(&vocab, &Vocabulary::loadError);
+  vocab.loadVocabAsync();
+
+  bool finished = finishedSpy.wait(60000);
+  ASSERT_TRUE(finished) << "loadFinished not received";
+  ASSERT_TRUE(errorSpy.isEmpty())
+      << "Error: "
+      << (errorSpy.isEmpty() ? ""
+                             : errorSpy.at(0).at(0).toString().toStdString());
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<long, std::ratio<1, 1000>> duration =
