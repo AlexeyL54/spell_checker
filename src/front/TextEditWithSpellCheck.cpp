@@ -58,7 +58,6 @@ void TextEditWithSpellCheck::applyFirstCorrections() {
     return;
   }
 
-  // Сохраняем исходный текст для отмены, если ещё не сохранён
   if (!hasOriginal_) {
     originalText_ = toPlainText();
     hasOriginal_ = true;
@@ -71,26 +70,34 @@ void TextEditWithSpellCheck::applyFirstCorrections() {
   if (currentErrors.isEmpty())
     return;
 
-  // Заменяем слова с конца, чтобы не смещать позиции
   selfUpdating_ = true;
+
+  clearFormats();
   fixedPositions_.clear();
 
-  for (int i = currentErrors.size() - 1; i >= 0; --i) {
-    const SpellError &err = currentErrors[i];
+  // Сортируем ошибки по убыванию start (замена справа налево)
+  std::sort(currentErrors.begin(), currentErrors.end(),
+            [](const SpellError &a, const SpellError &b) {
+              return a.start > b.start;
+            });
+
+  // Применяем замены и сразу применяем форматирование
+  for (const SpellError &err : currentErrors) {
     if (err.suggestions.isEmpty())
       continue;
 
     QString newWord = err.suggestions.first();
-    // Сохраняем регистр оригинального слова
     QString correctedWord = preserveCase(err.word, newWord);
-    replaceWordAt(err.start, err.length, correctedWord);
-    // Запоминаем позицию замены
-    fixedPositions_.append(qMakePair(err.start, correctedWord.length()));
-  }
 
-  // Очищаем все форматы и применяем мягкое выделение к исправленным словам
-  clearFormats();
-  highlightFixedPositions();
+    // Заменяем слово
+    replaceWordAt(err.start, err.length, correctedWord);
+
+    // Выделяем
+    QTextCharFormat fixedFormat;
+    fixedFormat.setUnderlineStyle(QTextCharFormat::WaveUnderline);
+    fixedFormat.setUnderlineColor(currentColors_.spellFixed);
+    applyFormatToRange(err.start, correctedWord.length(), fixedFormat);
+  }
 
   errors_.clear();
   selfUpdating_ = false;
