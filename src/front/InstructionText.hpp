@@ -4,7 +4,6 @@
 #include <QString>
 
 inline QString getInstructionText() {
-  // Используем QStringLiteral для правильной UTF-8 обработки
   return QStringLiteral(
       "\n"
       "ИНСТРУКЦИЯ ПО ИСПОЛЬЗОВАНИЮ ПРОГРАММЫ\n"
@@ -66,9 +65,10 @@ inline QString getInstructionText() {
       "\n"
       "5. ГОРЯЧИЕ КЛАВИШИ (стандартные для поля ввода)\n"
       "\n"
-      "   Ctrl+X   — вырезать         Ctrl+C   — копировать\n"
-      "   Ctrl+V   — вставить         Ctrl+Z   — отменить\n"
-      "   Ctrl+A   — выделить всё     Ctrl+Y   — повторить (при наличии)\n"
+      "   Ctrl+X   — вырезать\n"
+      "   Ctrl+C   — копировать\n"
+      "   Ctrl+V   — вставить\n"
+      "   Ctrl+A   — выделить всё\n"
       "\n"
       "═══════════════════════════════════════════════════════════════\n");
 }
