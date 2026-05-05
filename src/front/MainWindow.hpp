@@ -5,7 +5,6 @@
 #include "InputPage.hpp"
 #include "LoadingPage.hpp"
 #include "ThemeManager.hpp"
-#include "qboxlayout.h"
 #include <QComboBox>
 #include <QWidget>
 
@@ -26,7 +25,6 @@ private slots:
   void onThemeChanged(int index);
 
   void onLoadStarted();
-  // void onLoadProgress(int wordsLoaded);
   void onLoadFinished();
   void onLoadError(const QString &error);
 

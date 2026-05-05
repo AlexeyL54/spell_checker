@@ -7,7 +7,6 @@
 #include <QVector>
 
 #include "ThemeManager.hpp"
-#include "qtmetamacros.h"
 
 class Vocabulary;
 struct ThemeColors;
@@ -16,10 +15,10 @@ struct ThemeColors;
  * @brief Структура, описывающая орфографическую ошибку.
  */
 struct SpellError {
-  int start;    ///< Начальная позиция слова в символах (QString)
-  int length;   ///< Длина слова в символах
-  QString word; ///< Исходное слово
-  QVector<QString> suggestions; ///< Варианты исправлений
+  int start;                    // Начальная позиция слова в символах (QString)
+  int length;                   // Длина слова в символах
+  QString word;                 // Исходное слово
+  QVector<QString> suggestions; // Варианты исправлений
 };
 
 /**
@@ -64,10 +63,7 @@ public:
   void applyFirstCorrections();
 
   /**
-   * @brief Отменяет последнюю операцию проверки или исправления.
-   *
-   * Восстанавливает текст, который был до вызова performSpellCheck() или
-   * applyFirstCorrections().
+   * @brief Восстанавливает текст исходный текст.
    */
   void revertToOriginal();
 
@@ -90,7 +86,10 @@ protected:
   void mousePressEvent(QMouseEvent *event) override;
 
 private slots:
-  void onTextChanged(); ///< Сбрасывает выделение при ручном изменении текста
+  /**
+   * Сбрасывает выделение при ручном изменении текста
+   */
+  void onTextChanged();
 
 signals:
   void spellCheckCompleted(int errorCount);
@@ -105,38 +104,70 @@ private:
    */
   QString preserveCase(const QString &originalWord,
                        const QString &correctedWord);
-  void
-  clearSpellCheck(); ///< Удаляет всё форматирование и очищает список ошибок
-  void highlightErrors();         ///< Применяет красное подчёркивание к ошибкам
-  void highlightFixedPositions(); ///< Применяет мягкое выделение к указанным
-                                  ///< позициям
-  void addIgnoredWord(
-      const QString &word); ///< Добавляет слово в список игнорируемых
-  bool isWordIgnored(
-      const QString &word) const; ///< Проверяет, игнорируется ли слово
-  QVector<SpellError>
-  findErrors(const QString &text); ///< Находит все ошибки в тексте
-  void replaceWordAt(int start, int length,
-                     const QString &newWord); ///< Заменяет слово в документе
-  void applyFormatToRange(
-      int start, int length,
-      const QTextCharFormat &format); ///< Применяет формат к диапазону
-  void clearFormats();                ///< Очищает всё форматирование документа
-  void updateColors();                ///< Обновляет цвета подсветки
+
+  /**
+   *Удаляет всё форматирование и очищает список ошибок
+   */
+  void clearSpellCheck();
+
+  /**
+   * Применяет красное подчёркивание к ошибкам
+   */
+  void highlightErrors();
+
+  /**
+   * Применяет мягкое выделение к указанным позициям
+   */
+  void highlightFixedPositions();
+
+  /**
+   * Добавляет слово в список игнорируемых
+   */
+  void addIgnoredWord(const QString &word);
+
+  /**
+   * Проверяет, игнорируется ли слово
+   */
+  bool isWordIgnored(const QString &word) const;
+
+  /**
+   * Находит все ошибки в тексте
+   */
+  QVector<SpellError> findErrors(const QString &text);
+
+  /**
+   * Заменяет слово в документе
+   */
+  void replaceWordAt(int start, int length, const QString &newWord);
+
+  /**
+   * Применяет формат к диапазону
+   */
+  void applyFormatToRange(int start, int length, const QTextCharFormat &format);
+
+  /**
+   * Очищает всё форматирование документа
+   */
+  void clearFormats();
+
+  /**
+   * Обновляет цвета подсветки
+   */
+  void updateColors();
 
   Vocabulary *vocab_ = nullptr;
-  QVector<SpellError> errors_; ///< Текущие ошибки
-  QSet<QString> ignoredWords_; ///< Слова, отмеченные пользователем как
-                               ///< правильные (в нижнем регистре)
-  QString originalText_;       ///< Текст, сохранённый для отмены
-  bool hasOriginal_ = false;   ///< Флаг наличия сохранённого текста
-  bool selfUpdating_ = false;  ///< Предотвращает рекурсивные вызовы при
-                               ///< программном изменении текста
+  QVector<SpellError> errors_; // Текущие ошибки
+  QSet<QString> ignoredWords_; // Слова, отмеченные пользователем как
+                               // правильные (в нижнем регистре)
+  QString originalText_;       // Текст, сохранённый для отмены
+  bool hasOriginal_ = false;   // Флаг наличия сохранённого текста
+  bool selfUpdating_ = false;  // Предотвращает рекурсивные вызовы при
+                               // программном изменении текста
 
-  QVector<QPair<int, int>> fixedPositions_; ///< Позиции (начало, длина) слов,
-                                            ///< исправленных автоматически
+  QVector<QPair<int, int>> fixedPositions_; // Позиции (начало, длина) слов,
+                                            // исправленных автоматически
 
-  ThemeColors currentColors_; ///< Текущие цвета темы
+  ThemeColors currentColors_; // Текущие цвета темы
 };
 
 #endif // TEXTEDITWITHSPELLCHECK_HPP

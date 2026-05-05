@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <unordered_set>
@@ -173,8 +174,8 @@ bool Vocabulary::isInVocab(const QString &str) {
 
 void Vocabulary::buildTrigramIndex() {
   for (int idx = 0; idx < vocab_words.size(); ++idx) {
-    const auto &word = vocab_words[idx];
-    auto trigrams = extractTrigrams(word);
+    const QString &word = vocab_words[idx];
+    QVector<uint64_t> trigrams = extractTrigrams(word);
 
     // Удаляем дубликаты триграмм для одного слова
     unordered_set<uint64_t> unique_trigrams;
@@ -189,8 +190,6 @@ void Vocabulary::buildTrigramIndex() {
 }
 
 uint64_t Vocabulary::hashTrigram(uint32_t c1, uint32_t c2, uint32_t c3) {
-  // Используем 64-битный хэш для избежания коллизий
-  // Комбинируем три 32-битных кода символов в один 64-битный хэш
   uint64_t hash = 0;
   hash = (hash << 21) | (static_cast<uint64_t>(c1) & 0x1FFFFF);
   hash = (hash << 21) | (static_cast<uint64_t>(c2) & 0x1FFFFF);
@@ -206,7 +205,6 @@ QVector<uint64_t> Vocabulary::extractTrigrams(const QString &word) {
     return trigrams;
   }
 
-  // Получаем коды символов
   QVector<uint32_t> char_codes;
   for (int i = 0; i < len; ++i) {
     char_codes.append(word[i].unicode());
@@ -318,25 +316,18 @@ uint32_t Vocabulary::getLevensteinDistance(const QString &word1,
 
 QVector<QString> Vocabulary::checkWordSpelling(const QString &word) {
   QVector<QString> corrections;
+  QHash<int, uint8_t> candidate_scores;
 
-  if (isInVocab(word)) {
+  if (isInVocab(word) or word.length() == 0) {
     return corrections;
   }
 
-  if (word.length() == 0) {
-    return corrections;
-  }
-
-  // Приводим слово к нижнему регистру для поиска
   QString lower_word = word.toLower();
-  auto word_trigrams = extractTrigrams(lower_word);
+  QVector<uint64_t> word_trigrams = extractTrigrams(lower_word);
 
   if (word_trigrams.isEmpty()) {
     return corrections;
   }
-
-  // Собираем кандидатов на основе совпадения триграмм
-  QHash<int, uint8_t> candidate_scores;
 
   for (uint64_t trigram : word_trigrams) {
     auto it = trigram_index.find(trigram);

@@ -17,7 +17,6 @@ set(SOURCES
     src/front/StyleManager.cpp
     src/front/LoadingPage.cpp
     src/back/vocab.cpp
-    src/back/unistring.cpp
 )
 
 set(HEADERS
@@ -28,9 +27,10 @@ set(HEADERS
     src/front/StyleManager.hpp
     src/front/LoadingPage.hpp
     src/back/vocab.hpp
-    src/back/unistring.hpp
 )
 
 add_executable(SpellChecker ${SOURCES} ${HEADERS})
+
+target_compile_options(SpellChecker PRIVATE -O2)
 
 target_link_libraries(SpellChecker Qt6::Core Qt6::Widgets)

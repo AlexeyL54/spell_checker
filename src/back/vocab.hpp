@@ -88,20 +88,18 @@ signals:
 private:
   std::atomic<bool> isLoaded_{false};
 
-  QVector<QHash<size_t, QString>>
-      vocab_hash_table; ///< Хэш-таблица строк словаря (индекс - длина слова)
-  QVector<QString> vocab_words; ///< Плоский список всех слов словаря
-  QHash<uint64_t, QVector<int>>
-      trigram_index; ///< Индекс триграмм: триграмма -> список индексов слов
+  QVector<QHash<size_t, QString>> vocab_hash_table; // Хэш-таблица строк словаря
+  QVector<QString> vocab_words;                     // Список всех слов словаря
+  QHash<uint64_t, QVector<int>> trigram_index;      // триграмма -> индексы слов
 
-  const QString vocab_path; ///< Путь к файлу словаря
+  const QString vocab_path; // Путь к файлу словаря
 
   const uint32_t MAXLEVENSTEINDIST =
-      3; ///< Максимальное допустимое расстояние Левенштейна
+      3; // Максимальное допустимое расстояние Левенштейна
   const uint16_t MAX_CANDIDATES =
-      100; ///< Максимальное количество кандидатов для проверки
+      100; // Максимальное количество кандидатов для проверки
   const uint8_t MIN_TRIGRAM_MATCHES =
-      2; ///< Минимальное количество совпадающих триграмм для кандидата
+      2; // Минимальное количество совпадающих триграмм для кандидата
 
   /**
    * @brief Вычислить расстояние Левенштейна между двумя словами

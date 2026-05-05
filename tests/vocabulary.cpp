@@ -1,54 +1,47 @@
-#include "../src/back/unistring.hpp"
 #include "../src/back/vocab.hpp"
+#include "qhashfunctions.h"
+
+#include <chrono>
 #include <cstddef>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <iostream>
 #include <math.h>
 #include <string>
 
-#include <chrono>
-#include <iostream>
+#include <QApplication>
+#include <QCoreApplication>
+#include <QString>
+#include <QtTest/QSignalSpy>
 
 using std::cerr;
 using std::endl;
 using std::string;
 using std::wofstream;
 using std::filesystem::remove;
-using utf8::Unistring;
 
-const string test_vocab_path = "test_vocab.txt";
-const vector<Unistring> words = {
+const QString TEST_VOCAB_PATH = "test_vocab.txt";
+const QString REAL_DICT_PATH = "../../vocab/russian-words/russian.txt";
+const vector<QString> words = {
     "привет",     "мир",      "программа", "тестирование", "словарь",
     "русский",    "язык",     "проверка",  "орфография",   "компьютер",
     "разработка", "алгоритм", "структура", "данные",       "функция",
     "переменная", "класс",    "объект",    "метод",        "наследование",
 };
 
-/**
- * @brief Создать хэш код для строки
- * @param str ссылка на строку
- * @return хэш код
- */
-/*size_t createHashCode(const Unistring &str) {
-  size_t hash = 5381;
-  int length = str.length();
+static QApplication *testApp = nullptr;
 
-  for (int i = 0; i < length; i++) {
-    hash = ((hash << 5) + hash) + utf8::unichar_to_int(str[i]);
-  }
+int main(int argc, char **argv) {
+  // Создаём QApplication для тестов
+  QApplication app(argc, argv);
+  testApp = &app;
 
-  return hash;
-}*/
+  ::testing::InitGoogleTest(&argc, argv);
+  int result = RUN_ALL_TESTS();
 
-size_t createHashCode(const Unistring &str) {
-  size_t hash = 5381;
-  const string &bytes = str.to_string();
-  for (unsigned char c : bytes) {
-    hash = ((hash << 5) + hash) + c;
-  }
-  return hash;
+  return result;
 }
 
 /**
@@ -58,7 +51,7 @@ size_t createHashCode(const Unistring &str) {
 size_t maxWordLen() {
   size_t maxLen = 0;
 
-  for (const Unistring &word : words) {
+  for (const QString &word : words) {
     if (word.length() > maxLen)
       maxLen = word.length();
   }
@@ -70,14 +63,14 @@ size_t maxWordLen() {
  * @return хэш-таблицу, гду i-ый элемент вектора - слоаварь, в котором значение
  * - строки с одинаковой длиной равной индексу словаря в векторе
  */
-vector<unordered_map<size_t, Unistring>> createTestHashTable() {
-  vector<unordered_map<size_t, Unistring>> test_hash_table(maxWordLen() + 1);
+QVector<QHash<size_t, QString>> createTestHashTable(Vocabulary &vocab) {
+  QVector<QHash<size_t, QString>> test_hash_table(maxWordLen() + 1);
   size_t index;
   size_t key;
 
-  for (Unistring str : words) {
+  for (QString str : words) {
     index = str.length();
-    key = createHashCode(str);
+    key = vocab.createHashCode(str);
     test_hash_table[index][key] = str;
   }
 
@@ -90,15 +83,15 @@ vector<unordered_map<size_t, Unistring>> createTestHashTable() {
  * - строки с одинаковой длиной равной индексу словаря в векторе
  */
 void prepareTestVocab() {
-  // Используем обычный ofstream в бинарном режиме
-  std::ofstream file(test_vocab_path, std::ios::out);
+  const std::string path = TEST_VOCAB_PATH.toUtf8().toStdString();
+  std::ofstream file(path, std::ios::out);
   if (!file.is_open()) {
-    cerr << "Unable to open file: " << test_vocab_path << endl;
+    cerr << "Unable to open file: " << path << endl;
     return;
   }
 
-  for (const Unistring &word : words) {
-    file << word.to_string() << "\n";
+  for (const QString &word : words) {
+    file << word.toUtf8().toStdString() << "\n";
   }
 
   file.close();
@@ -109,24 +102,46 @@ void prepareTestVocab() {
 /**
  * @brief Тест создания хэш-таблицы из файла словаря
  */
-TEST(VOCABULARY, loadVocab) {
+TEST(VOCABULARY, loadVocabAsync) {
   prepareTestVocab();
 
-  Vocabulary vocab = Vocabulary(test_vocab_path);
-  vocab.loadVocab();
+  Vocabulary vocab = Vocabulary(TEST_VOCAB_PATH);
 
-  vector<unordered_map<size_t, Unistring>> table = vocab.getVocabHashTable();
-  vector<unordered_map<size_t, Unistring>> test_table = createTestHashTable();
+  QSignalSpy finishedSpy(&vocab, &Vocabulary::loadFinished);
+  QSignalSpy errorSpy(&vocab, &Vocabulary::loadError);
+  vocab.loadVocabAsync();
+
+  bool finished = finishedSpy.wait(5000);
+
+  ASSERT_TRUE(finished) << "loadFinished not received";
+  ASSERT_TRUE(errorSpy.isEmpty())
+      << "Error: "
+      << (errorSpy.isEmpty() ? ""
+                             : errorSpy.at(0).at(0).toString().toStdString());
+
+  QVector<QHash<size_t, QString>> table = vocab.getVocabHashTable();
+  QVector<QHash<size_t, QString>> test_table = createTestHashTable(vocab);
   EXPECT_EQ(table, test_table);
 
-  remove(test_vocab_path);
+  remove(TEST_VOCAB_PATH.toUtf8().toStdString());
 }
 
 TEST(VOCABULARY, isInVocab) {
   prepareTestVocab();
 
-  Vocabulary vocab = Vocabulary(test_vocab_path);
-  vocab.loadVocab();
+  Vocabulary vocab = Vocabulary(TEST_VOCAB_PATH);
+
+  QSignalSpy finishedSpy(&vocab, &Vocabulary::loadFinished);
+  QSignalSpy errorSpy(&vocab, &Vocabulary::loadError);
+  vocab.loadVocabAsync();
+
+  bool finished = finishedSpy.wait(60000);
+
+  ASSERT_TRUE(finished) << "loadFinished not received";
+  ASSERT_TRUE(errorSpy.isEmpty())
+      << "Error: "
+      << (errorSpy.isEmpty() ? ""
+                             : errorSpy.at(0).at(0).toString().toStdString());
 
   EXPECT_EQ(vocab.isInVocab("класс"), true);
   EXPECT_EQ(vocab.isInVocab("клас"), false);
@@ -137,33 +152,30 @@ TEST(VOCABULARY, isInVocab) {
 TEST(VOCABULARY, checkWordSpelling) {
   prepareTestVocab();
 
-  Vocabulary vocab = Vocabulary(test_vocab_path);
+  Vocabulary vocab = Vocabulary(TEST_VOCAB_PATH);
   vocab.loadVocab();
 
-  auto corrections1 = vocab.checkWordSpelling("прграмма");
+  QVector<QString> corrections1 = vocab.checkWordSpelling("прграмма");
   ASSERT_FALSE(corrections1.empty());
   EXPECT_EQ(corrections1[0], "программа");
 
-  auto corrections2 = vocab.checkWordSpelling("приверка");
+  QVector<QString> corrections2 = vocab.checkWordSpelling("приверка");
   ASSERT_FALSE(corrections2.empty());
   EXPECT_EQ(corrections2[0], "проверка");
 
-  auto corrections3 = vocab.checkWordSpelling("приветы");
+  QVector<QString> corrections3 = vocab.checkWordSpelling("приветы");
   ASSERT_FALSE(corrections3.empty());
   EXPECT_EQ(corrections3[0], "привет");
 
-  auto corrections4 = vocab.checkWordSpelling("класс");
+  QVector<QString> corrections4 = vocab.checkWordSpelling("класс");
   EXPECT_TRUE(corrections4.empty());
 }
 
 TEST(VOCABULARY, realPerformanceBenchmark) {
-  // Замените на путь к вашему реальному словарю
-  const string real_dict_path = "../../vocab/russian-words/russian.txt";
-
-  // Проверяем, существует ли файл
-  std::ifstream check(real_dict_path);
+  const std::string path = REAL_DICT_PATH.toUtf8().toStdString();
+  std::ifstream check(path);
   if (!check.is_open()) {
-    std::cout << "Dictionary not found at: " << real_dict_path << std::endl;
+    std::cout << "Dictionary not found at: " << path << std::endl;
     std::cout << "Skipping performance test" << std::endl;
     return;
   }
@@ -172,7 +184,7 @@ TEST(VOCABULARY, realPerformanceBenchmark) {
   // Подсчитываем количество строк в словаре
   size_t word_count = 0;
   std::string line;
-  std::ifstream count_file(real_dict_path);
+  std::ifstream count_file(path);
   while (std::getline(count_file, line)) {
     word_count++;
   }
@@ -181,9 +193,9 @@ TEST(VOCABULARY, realPerformanceBenchmark) {
   std::cout << "\n=== Performance Test ===" << std::endl;
   std::cout << "Dictionary size: " << word_count << " words" << std::endl;
 
-  auto start = std::chrono::high_resolution_clock::now();
+  std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
-  Vocabulary vocab(real_dict_path);
+  Vocabulary vocab = Vocabulary(REAL_DICT_PATH);
   vocab.loadVocab();
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();

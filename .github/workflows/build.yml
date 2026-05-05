@@ -1,0 +1,99 @@
+name: Build Windows (MSVC)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Qt6
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.5.0'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+        install-deps: 'true'
+        dir: ${{ github.workspace }}/Qt
+
+    - name: Configure CMake
+      run: |
+        cmake -B build `
+          -G "Visual Studio 17 2022" `
+          -A x64 `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_PREFIX_PATH="${{ github.workspace }}/Qt/6.5.0/msvc2019_64;${{ github.workspace }}/vcpkg/installed/x64-windows" `
+          -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+          -DVCPKG_TARGET_TRIPLET=x64-windows `
+          -DCMAKE_INSTALL_PREFIX=install
+
+    - name: Build
+      run: |
+        cmake --build build --config Release --parallel
+
+    - name: Install
+      run: |
+        cmake --install build --config Release
+
+    - name: Deploy Qt DLLs (windeployqt)
+      shell: pwsh
+      run: |
+        # 1. Находим windeployqt.exe
+        # Action install-qt-action обычно добавляет Qt bin в PATH. Попробуем найти его там.
+        $winDeployQt = Get-Command windeployqt.exe -ErrorAction SilentlyContinue
+
+        if (-not $winDeployQt) {
+            # Если не в PATH, пробуем стандартный путь установки действия
+            $qtRoot = "C:\Qt\6.5.0\msvc2019_64"
+            $winDeployQtPath = Join-Path $qtRoot "bin\windeployqt.exe"
+
+            if (Test-Path $winDeployQtPath) {
+                $winDeployQt = $winDeployQtPath
+            } else {
+                # Попытка найти в папке workspace, если action вел себя нестандартно
+                $wsQtPath = "${{ github.workspace }}\Qt\6.5.0\msvc2019_64\bin\windeployqt.exe"
+                if (Test-Path $wsQtPath) {
+                    $winDeployQt = $wsQtPath
+                } else {
+                    Write-Error "❌ windeployqt.exe not found in PATH or standard locations."
+                    exit 1
+                }
+            }
+        } else {
+            $winDeployQt = $winDeployQt.Source
+        }
+
+        Write-Host "Using windeployqt from: $winDeployQt"
+
+        $appPath = "${{ github.workspace }}\install\bin\TextAnalyzer.exe"
+
+        if (-not (Test-Path $appPath)) {
+            Write-Error "❌ Application executable not found at: $appPath"
+            exit 1
+        }
+
+        Write-Host "Running windeployqt..."
+        # ДОБАВЛЕН ФЛАГ --no-translations
+        & $winDeployQt --release --no-compiler-runtime --no-opengl-sw --no-translations "$appPath"
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "❌ windeployqt failed with exit code $LASTEXITCODE"
+            exit 1
+        }
+        Write-Host "✅ Qt dependencies deployed."
+        Write-Host "✅ Deployment completed successfully!"
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: TextAnalyzer-Windows-x64
+        path: install/
+        retention-days: 30
