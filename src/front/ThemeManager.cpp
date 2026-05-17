@@ -1,9 +1,22 @@
 #include "ThemeManager.hpp"
 
+/**
+ * @brief Конструктор менеджера тем.
+ * @param parent Родительский объект (по умолчанию nullptr).
+ *
+ * При создании устанавливает тёмную тему по умолчанию.
+ */
 ThemeManager::ThemeManager(QObject *parent) : QObject(parent) {
   setTheme(Dark);
 };
 
+/**
+ * @brief Устанавливает текущую тему оформления.
+ * @param theme Новая тема (Light или Dark).
+ *
+ * Если тема не изменилась, ничего не делает.
+ * При изменении темы обновляет цвета и испускает сигнал themeChanged().
+ */
 void ThemeManager::setTheme(Theme theme) {
   if (currentTheme_ == theme)
     return;
@@ -13,10 +26,26 @@ void ThemeManager::setTheme(Theme theme) {
   emit themeChanged();
 }
 
+/**
+ * @brief Возвращает текущую тему.
+ * @return Текущая тема.
+ */
 Theme ThemeManager::getTheme() { return currentTheme_; }
 
+/**
+ * @brief Возвращает цвета текущей темы.
+ * @return Структура ThemeColors с цветами текущей темы.
+ */
 ThemeColors ThemeManager::getThemeColors() { return currentColors_; }
 
+/**
+ * @brief Загружает цветовую схему для указанной темы.
+ * @param theme Тема, для которой нужно загрузить цвета.
+ * @return Структура ThemeColors с цветами указанной темы.
+ *
+ * Определяет конкретные цветовые значения для светлой и тёмной темы.
+ * Все цвета заданы в RGB-формате с комментариями в шестнадцатеричном виде.
+ */
 ThemeColors ThemeManager::loadTheme(Theme theme) const {
   ThemeColors colors;
 

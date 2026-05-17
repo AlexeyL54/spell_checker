@@ -1,6 +1,6 @@
 #include "TextEditWithSpellCheck.hpp"
-#include "../back/vocab.hpp"
 #include "ThemeManager.hpp"
+
 #include <QApplication>
 #include <QClipboard>
 #include <QDebug>
@@ -10,6 +10,11 @@
 #include <QTextCharFormat>
 #include <QTextCursor>
 
+/**
+ * @brief Конструктор виджета текстового редактора с проверкой орфографии.
+ * @param colors Цветовая схема темы для подсветки ошибок.
+ * @param parent Родительский виджет (по умолчанию nullptr).
+ */
 TextEditWithSpellCheck::TextEditWithSpellCheck(const ThemeColors &colors,
                                                QWidget *parent)
     : QPlainTextEdit(parent), currentColors_(colors), selfUpdating_(false) {
@@ -18,17 +23,33 @@ TextEditWithSpellCheck::TextEditWithSpellCheck(const ThemeColors &colors,
   setUndoRedoEnabled(true);
 }
 
+/**
+ * @brief Деструктор виджета.
+ */
 TextEditWithSpellCheck::~TextEditWithSpellCheck() {}
 
+/**
+ * @brief Устанавливает указатель на словарь.
+ * @param vocab Словарь (должен существовать дольше, чем виджет)
+ */
 void TextEditWithSpellCheck::setVocabulary(Vocabulary *vocab) {
   vocab_ = vocab;
 }
 
+/**
+ * @brief Устанавливает цвета из текущей темы.
+ * @param colors Цветовая схема из ThemeManager
+ */
 void TextEditWithSpellCheck::setThemeColors(const ThemeColors &colors) {
   currentColors_ = colors;
   updateColors();
 }
 
+/**
+ * @brief Запускает проверку орфографии текущего текста.
+ *
+ * Сохраняет исходный текст для отмены, находит ошибки и выделяет их.
+ */
 void TextEditWithSpellCheck::performSpellCheck() {
   if (!vocab_) {
     qDebug() << "SpellCheck: vocabulary is null!";
@@ -53,6 +74,12 @@ void TextEditWithSpellCheck::performSpellCheck() {
   emit spellCheckCompleted(errors_.size());
 }
 
+/**
+ * @brief Автоматически исправляет все найденные ошибки, используя первый
+ * вариант из списка.
+ *
+ * После замены выделяет исправленные слова мягким цветом.
+ */
 void TextEditWithSpellCheck::applyFirstCorrections() {
   if (!vocab_) {
     qDebug() << "applyFirstCorrections: vocabulary is null!";
@@ -105,6 +132,9 @@ void TextEditWithSpellCheck::applyFirstCorrections() {
   emit spellCheckCompleted(0);
 }
 
+/**
+ * @brief Восстанавливает исходный текст.
+ */
 void TextEditWithSpellCheck::revertToOriginal() {
   if (!hasOriginal_)
     return;
@@ -113,11 +143,14 @@ void TextEditWithSpellCheck::revertToOriginal() {
   setPlainText(originalText_);
   clearSpellCheck();
   fixedPositions_.clear();
-  hasOriginal_ = false;         // После отмены оригинал более не действителен
-  emit canRevertChanged(false); // Добавляем сигнал
+  hasOriginal_ = false;
+  emit canRevertChanged(false);
   selfUpdating_ = false;
 }
 
+/**
+ * @brief Очищает текст, сбрасывает все выделения и состояния.
+ */
 void TextEditWithSpellCheck::clearAll() {
   selfUpdating_ = true;
   clear();
@@ -126,13 +159,21 @@ void TextEditWithSpellCheck::clearAll() {
   hasOriginal_ = false;
   originalText_.clear();
   ignoredWords_.clear();
-  emit canRevertChanged(false); // Добавляем сигнал
-  emit spellCheckCompleted(0);  // Ошибок нет
+  emit canRevertChanged(false);
+  emit spellCheckCompleted(0);
   selfUpdating_ = false;
 }
 
+/**
+ * @brief Возвращает текущий текст.
+ * @return Текст из редактора в виде строки.
+ */
 QString TextEditWithSpellCheck::getText() const { return toPlainText(); }
 
+/**
+ * @brief Устанавливает текст программно.
+ * @param text Новый текст для установки.
+ */
 void TextEditWithSpellCheck::setText(const QString &text) {
   selfUpdating_ = true;
   setPlainText(text);
@@ -140,68 +181,134 @@ void TextEditWithSpellCheck::setText(const QString &text) {
   fixedPositions_.clear();
   hasOriginal_ = false;
   originalText_.clear();
-  emit canRevertChanged(false); // Добавляем сигнал
+  emit canRevertChanged(false);
   selfUpdating_ = false;
 }
 
+/**
+ * @brief Обработчик нажатия кнопки мыши.
+ * @param event Событие мыши.
+ *
+ * Переопределён для отображения контекстного меню с вариантами исправления
+ * при клике на слово с орфографической ошибкой.
+ */
 void TextEditWithSpellCheck::mousePressEvent(QMouseEvent *event) {
-  if (event->button() == Qt::LeftButton) {
-    QTextCursor cursor = cursorForPosition(event->pos());
-    int pos = cursor.position();
-
-    // Ищем ошибку, содержащую эту позицию
-    for (const SpellError &err : errors_) {
-      if (pos >= err.start && pos <= err.start + err.length) {
-        // Показываем меню с вариантами
-        QMenu menu;
-        for (const QString &sugg : err.suggestions) {
-          menu.addAction(sugg, [this, err, sugg]() {
-            QString correctedWord = preserveCase(err.word, sugg);
-            selfUpdating_ = true;
-            replaceWordAt(err.start, err.length, correctedWord);
-            selfUpdating_ = false;
-
-            QTextCharFormat fixedFormat;
-            fixedFormat.setUnderlineStyle(QTextCharFormat::WaveUnderline);
-            fixedFormat.setUnderlineColor(currentColors_.spellFixed);
-            applyFormatToRange(err.start, correctedWord.length(), fixedFormat);
-            selfUpdating_ = false;
-          });
-        }
-        menu.addSeparator();
-        menu.addAction("Отметить как правильное", [this, err]() {
-          // Добавляем слово в игнорируемые
-          addIgnoredWord(err.word);
-
-          // Убираем подчёркивание только для этого конкретного слова
-          // Вместо перезапуска всей проверки
-          selfUpdating_ = true;
-
-          // Удаляем это слово из списка ошибок
-          for (int i = 0; i < errors_.size(); ++i) {
-            if (errors_[i].start == err.start &&
-                errors_[i].length == err.length) {
-              errors_.removeAt(i);
-              break;
-            }
-          }
-
-          // Очищаем форматирование только для этого слова
-          QTextCharFormat defaultFormat;
-          defaultFormat.setUnderlineStyle(QTextCharFormat::NoUnderline);
-          applyFormatToRange(err.start, err.length, defaultFormat);
-
-          selfUpdating_ = false;
-        });
-        menu.exec(event->globalPosition().toPoint());
-        event->accept();
-        return;
-      }
-    }
+  if (event->button() != Qt::LeftButton) {
+    QPlainTextEdit::mousePressEvent(event);
+    return;
   }
+
+  QTextCursor cursor = cursorForPosition(event->pos());
+  int pos = cursor.position();
+
+  SpellError *error = findErrorAtPosition(pos);
+  if (error) {
+    showCorrectionMenu(event->globalPosition().toPoint(), *error);
+    event->accept();
+    return;
+  }
+
   QPlainTextEdit::mousePressEvent(event);
 }
 
+/**
+ * @brief Находит ошибку по позиции курсора.
+ * @param position Позиция в документе.
+ * @return Указатель на найденную ошибку или nullptr, если ошибка не найдена.
+ */
+SpellError *TextEditWithSpellCheck::findErrorAtPosition(int position) {
+  for (SpellError &err : errors_) {
+    if (position >= err.start && position <= err.start + err.length) {
+      return &err;
+    }
+  }
+  return nullptr;
+}
+
+/**
+ * @brief Показывает контекстное меню с вариантами исправления ошибки.
+ * @param globalPos Глобальная позиция для отображения меню.
+ * @param error Структура ошибки для исправления.
+ */
+void TextEditWithSpellCheck::showCorrectionMenu(const QPoint &globalPos,
+                                                const SpellError &error) {
+  QMenu menu;
+
+  // Добавляем варианты исправлений
+  for (const QString &suggestion : error.suggestions) {
+    menu.addAction(suggestion, [this, error, suggestion]() {
+      applyCorrection(error, suggestion);
+    });
+  }
+
+  menu.addSeparator();
+  menu.addAction("Отметить как правильное",
+                 [this, error]() { ignoreWord(error); });
+
+  menu.exec(globalPos);
+}
+
+/**
+ * @brief Применяет выбранное исправление к ошибке.
+ * @param error Структура ошибки.
+ * @param suggestion Выбранный вариант исправления.
+ */
+void TextEditWithSpellCheck::applyCorrection(const SpellError &error,
+                                             const QString &suggestion) {
+  QString correctedWord = preserveCase(error.word, suggestion);
+
+  selfUpdating_ = true;
+  replaceWordAt(error.start, error.length, correctedWord);
+
+  // Применяем форматирование для исправленного слова
+  QTextCharFormat fixedFormat;
+  fixedFormat.setUnderlineStyle(QTextCharFormat::WaveUnderline);
+  fixedFormat.setUnderlineColor(currentColors_.spellFixed);
+  applyFormatToRange(error.start, correctedWord.length(), fixedFormat);
+
+  selfUpdating_ = false;
+}
+
+/**
+ * @brief Добавляет слово в игнорируемые и убирает подсветку ошибки.
+ * @param error Структура ошибки.
+ */
+void TextEditWithSpellCheck::ignoreWord(const SpellError &error) {
+  addIgnoredWord(error.word);
+
+  selfUpdating_ = true;
+
+  // Удаляем слово из списка ошибок
+  removeErrorFromList(error.start, error.length);
+
+  // Очищаем форматирование для этого слова
+  QTextCharFormat defaultFormat;
+  defaultFormat.setUnderlineStyle(QTextCharFormat::NoUnderline);
+  applyFormatToRange(error.start, error.length, defaultFormat);
+
+  selfUpdating_ = false;
+}
+
+/**
+ * @brief Удаляет ошибку из списка по позиции и длине.
+ * @param start Начальная позиция.
+ * @param length Длина слова.
+ */
+void TextEditWithSpellCheck::removeErrorFromList(int start, int length) {
+  for (int i = 0; i < errors_.size(); ++i) {
+    if (errors_[i].start == start && errors_[i].length == length) {
+      errors_.removeAt(i);
+      break;
+    }
+  }
+}
+
+/**
+ * @brief Сбрасывает выделение при ручном изменении текста.
+ *
+ * Вызывается при любом изменении текста пользователем.
+ * Очищает подсветку ошибок и список исправленных позиций.
+ */
 void TextEditWithSpellCheck::onTextChanged() {
   if (selfUpdating_)
     return;
@@ -212,6 +319,12 @@ void TextEditWithSpellCheck::onTextChanged() {
   fixedPositions_.clear();
 }
 
+/**
+ * @brief Применяет регистр оригинального слова к исправленному слову.
+ * @param originalWord Оригинальное слово (с ошибкой)
+ * @param correctedWord Исправленное слово (обычно в нижнем регистре)
+ * @return Слово с сохранённым регистром
+ */
 QString TextEditWithSpellCheck::preserveCase(const QString &originalWord,
                                              const QString &correctedWord) {
   if (originalWord.isEmpty() || correctedWord.isEmpty()) {
@@ -234,8 +347,8 @@ QString TextEditWithSpellCheck::preserveCase(const QString &originalWord,
     }
   }
 
-  // Если слово начинается с заглавной, но имеет смешанный регистр
-  // (например, "ПрИмЕр") - сохраняем только первую заглавную
+  // Если слово начинается с заглавной, но имеет смешанный регистр - сохраняем
+  // только первую заглавную
   if (originalWord[0].isUpper()) {
     QString result = correctedWord;
     result[0] = result[0].toUpper();
@@ -246,11 +359,17 @@ QString TextEditWithSpellCheck::preserveCase(const QString &originalWord,
   return correctedWord;
 }
 
+/**
+ * @brief Удаляет всё форматирование и очищает список ошибок.
+ */
 void TextEditWithSpellCheck::clearSpellCheck() {
   clearFormats();
   errors_.clear();
 }
 
+/**
+ * @brief Применяет красное волнистое подчёркивание к словам с ошибками.
+ */
 void TextEditWithSpellCheck::highlightErrors() {
   QTextCharFormat errorFormat;
   errorFormat.setUnderlineStyle(QTextCharFormat::WaveUnderline);
@@ -261,6 +380,9 @@ void TextEditWithSpellCheck::highlightErrors() {
   }
 }
 
+/**
+ * @brief Применяет мягкое выделение к исправленным позициям.
+ */
 void TextEditWithSpellCheck::highlightFixedPositions() {
   QTextCharFormat fixedFormat;
   fixedFormat.setUnderlineStyle(QTextCharFormat::WaveUnderline);
@@ -271,14 +393,28 @@ void TextEditWithSpellCheck::highlightFixedPositions() {
   }
 }
 
+/**
+ * @brief Добавляет слово в список игнорируемых.
+ * @param word Слово для добавления (регистр не важен).
+ */
 void TextEditWithSpellCheck::addIgnoredWord(const QString &word) {
   ignoredWords_.insert(word.toLower());
 }
 
+/**
+ * @brief Проверяет, игнорируется ли слово.
+ * @param word Слово для проверки (регистр не важен).
+ * @return true если слово в списке игнорируемых.
+ */
 bool TextEditWithSpellCheck::isWordIgnored(const QString &word) const {
   return ignoredWords_.contains(word.toLower());
 }
 
+/**
+ * @brief Находит все орфографические ошибки в тексте.
+ * @param text Текст для анализа.
+ * @return Вектор структур SpellError с информацией об ошибках.
+ */
 QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
   QVector<SpellError> result;
 
@@ -300,7 +436,7 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
 
     QString lowerWord = word.toLower();
 
-    // Проверяем наличие в словаре (сравниваем в нижнем регистре)
+    // Проверяем наличие в словаре
     if (vocab_->isInVocab(lowerWord)) {
       continue;
     }
@@ -308,13 +444,9 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
     try {
       QVector<QString> suggestions = vocab_->checkWordSpelling(lowerWord);
 
-      for (const QString &sug : suggestions) {
-      }
-
       if (!suggestions.isEmpty()) {
         // Сохраняем оригинальное слово (с сохранением регистра)
         result.append({start, length, word, suggestions});
-      } else {
       }
     } catch (const std::exception &e) {
       continue;
@@ -326,6 +458,12 @@ QVector<SpellError> TextEditWithSpellCheck::findErrors(const QString &text) {
   return result;
 }
 
+/**
+ * @brief Заменяет слово в документе по указанной позиции.
+ * @param start Начальная позиция заменяемого слова.
+ * @param length Длина заменяемого слова.
+ * @param newWord Новое слово для вставки.
+ */
 void TextEditWithSpellCheck::replaceWordAt(int start, int length,
                                            const QString &newWord) {
   QTextCursor cursor(document());
@@ -342,6 +480,12 @@ void TextEditWithSpellCheck::replaceWordAt(int start, int length,
   document()->blockSignals(oldState);
 }
 
+/**
+ * @brief Применяет форматирование к указанному диапазону текста.
+ * @param start Начальная позиция.
+ * @param length Длина диапазона.
+ * @param format Формат для применения.
+ */
 void TextEditWithSpellCheck::applyFormatToRange(int start, int length,
                                                 const QTextCharFormat &format) {
   // Проверяем границы
@@ -378,6 +522,9 @@ void TextEditWithSpellCheck::applyFormatToRange(int start, int length,
   doc->blockSignals(false);
 }
 
+/**
+ * @brief Очищает всё форматирование документа.
+ */
 void TextEditWithSpellCheck::clearFormats() {
   QTextDocument *doc = document();
   if (!doc)
@@ -396,6 +543,9 @@ void TextEditWithSpellCheck::clearFormats() {
   doc->blockSignals(false);
 }
 
+/**
+ * @brief Обновляет цвета подсветки ошибок и исправлений.
+ */
 void TextEditWithSpellCheck::updateColors() {
   if (!errors_.isEmpty()) {
     highlightErrors();

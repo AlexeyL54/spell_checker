@@ -1,7 +1,20 @@
 #include "LoadingPage.hpp"
 
+/**
+ * @brief Конструктор страницы загрузки.
+ * @param parent Родительский виджет (по умолчанию nullptr).
+ */
 LoadingPage::LoadingPage(QWidget *parent) : QWidget(parent) { setupUI(); }
 
+/**
+ * @brief Настроить пользовательский интерфейс.
+ *
+ * Создаёт и настраивает все визуальные компоненты страницы:
+ * - заголовок
+ * - метку статуса
+ * - прогресс-бар
+ * - центрированное выравнивание
+ */
 void LoadingPage::setupUI() {
   mainLayout = new QVBoxLayout(this);
   mainLayout->setContentsMargins(40, 40, 40, 40);
@@ -35,6 +48,12 @@ void LoadingPage::setupUI() {
   mainLayout->setAlignment(Qt::AlignCenter);
 }
 
+/**
+ * @brief Показать индикатор загрузки (спиннер/бесконечный прогресс).
+ *
+ * Переводит страницу в режим ожидания загрузки с отображением бегущего
+ * прогресс-бара и стандартным текстом статуса.
+ */
 void LoadingPage::showLoading() {
   titleLabel->setText("Загрузка словаря");
   progressBar->setRange(0, 0); // Бесконечный режим
@@ -43,6 +62,13 @@ void LoadingPage::showLoading() {
   statusLabel->setText("Идёт загрузка, пожалуйста, подождите...");
 }
 
+/**
+ * @brief Показать сообщение об ошибке.
+ * @param message Текст сообщения об ошибке.
+ *
+ * Переводит страницу в режим ошибки с красным текстом сообщения
+ * и остановленным прогресс-баром на 100%.
+ */
 void LoadingPage::showError(const QString &message) {
   titleLabel->setText("Ошибка загрузки");
   progressBar->setRange(0, 100);
@@ -52,15 +78,25 @@ void LoadingPage::showError(const QString &message) {
   statusLabel->setText(message);
 }
 
+/**
+ * @brief Показать сообщение об успешной загрузке.
+ * @param message Текст сообщения об успешной загрузке.
+ *
+ * Переводит прогресс-бар в завершённое состояние (100%).
+ * Не изменяет заголовок и текст статуса, только визуальное состояние прогресса.
+ */
 void LoadingPage::showSuccess(const QString &message) {
-  // titleLabel->setText("Готово!");
   progressBar->setRange(0, 100);
   progressBar->setValue(100);
   progressBar->setTextVisible(false);
-  // statusLabel->setStyleSheet("color: #66ff66;");
-  // statusLabel->setText(message);
 }
 
+/**
+ * @brief Обновить статус загрузки.
+ * @param status Новый текст статуса.
+ *
+ * Позволяет динамически обновлять информационное сообщение о процессе загрузки.
+ */
 void LoadingPage::setStatus(const QString &status) {
   statusLabel->setText(status);
 }

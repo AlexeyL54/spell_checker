@@ -9,6 +9,11 @@
 #include <QMessageBox>
 #include <QTextStream>
 
+/**
+ * @brief Конструктор страницы ввода.
+ * @param colors Цветовая схема темы оформления.
+ * @param parent Родительский виджет (по умолчанию nullptr).
+ */
 InputPage::InputPage(const ThemeColors &colors, QWidget *parent)
     : QWidget(parent), currentColors_(colors), lastErrorCount_(-1) {
   setupMainLayout();
@@ -27,12 +32,28 @@ InputPage::InputPage(const ThemeColors &colors, QWidget *parent)
   mainLayout->addLayout(contentRow, 1);
 }
 
+/**
+ * @brief Получить указатель на текстовый редактор с проверкой орфографии.
+ * @return Указатель на TextEditWithSpellCheck.
+ */
 TextEditWithSpellCheck *InputPage::getTextEdit() const { return textInput; }
 
+/**
+ * @brief Определить, активен ли режим ввода с клавиатуры.
+ * @return true если выбран ввод с клавиатуры, false если выбран файл.
+ */
 bool InputPage::isKeyboardMode() const { return radioKeyboard->isChecked(); }
 
+/**
+ * @brief Получить путь к выбранному файлу.
+ * @return Строка с путем к файлу.
+ */
 QString InputPage::getFilePath() const { return filePathEdit->text(); }
 
+/**
+ * @brief Загрузить текст из файла и переключиться в режим клавиатуры.
+ * @return true если загрузка успешна, false в противном случае.
+ */
 bool InputPage::loadAndSwitchToKeyboard() {
   QString path = filePathEdit->text();
   if (path.isEmpty()) {
@@ -56,17 +77,26 @@ bool InputPage::loadAndSwitchToKeyboard() {
   return true;
 }
 
+/**
+ * @brief Настроить главный компоновщик страницы.
+ */
 void InputPage::setupMainLayout() {
   mainLayout = new QVBoxLayout(this);
   mainLayout->setContentsMargins(0, 0, 0, 0);
   mainLayout->setSpacing(0);
 }
 
+/**
+ * @brief Настроить строку с контентом.
+ */
 void InputPage::setupContentRow() {
   contentRow = new QHBoxLayout();
   contentRow->setSpacing(0);
 }
 
+/**
+ * @brief Настроить колонку с контентом.
+ */
 void InputPage::setupContentColumn() {
   contentColumn = new QWidget(this);
   contentLayout = new QVBoxLayout(contentColumn);
@@ -74,6 +104,9 @@ void InputPage::setupContentColumn() {
   contentLayout->setSpacing(16);
 }
 
+/**
+ * @brief Настроить вступительный текст.
+ */
 void InputPage::setupIntroText() {
   introText = new QLabel("Вы можете ввести текст с клавиатуры или "
                          "выбрать текстовый файл с диска.",
@@ -82,6 +115,9 @@ void InputPage::setupIntroText() {
   contentLayout->addWidget(introText);
 }
 
+/**
+ * @brief Настроить переключатели выбора источника ввода.
+ */
 void InputPage::setupInputChoice() {
   inputChoiceGroup = new QButtonGroup(contentColumn);
   radioKeyboard = new QRadioButton("С клавиатуры", contentColumn);
@@ -102,6 +138,9 @@ void InputPage::setupInputChoice() {
   stack = new QStackedWidget(contentColumn);
 }
 
+/**
+ * @brief Настроить строку состояния.
+ */
 void InputPage::setupStatusBar() {
   statusBar = new QStatusBar(this);
   statusBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -157,6 +196,9 @@ void InputPage::setupStatusBar() {
   statusBar->addPermanentWidget(statsLabel);
 }
 
+/**
+ * @brief Настроить страницу ввода с клавиатуры.
+ */
 void InputPage::setupKeyboardPage() {
   pageKeyboard = new QWidget(contentColumn);
   QVBoxLayout *layoutKeyboard = new QVBoxLayout(pageKeyboard);
@@ -176,6 +218,9 @@ void InputPage::setupKeyboardPage() {
   stack->addWidget(pageKeyboard);
 }
 
+/**
+ * @brief Настроить страницу выбора файла.
+ */
 void InputPage::setupFilePage() {
   pageFile = new QWidget(contentColumn);
   QVBoxLayout *layoutFile = new QVBoxLayout(pageFile);
@@ -205,6 +250,9 @@ void InputPage::setupFilePage() {
   stack->addWidget(pageFile);
 }
 
+/**
+ * @brief Настроить соединения сигналов и слотов.
+ */
 void InputPage::setupConnections() {
   connect(btnSelectFile, &QPushButton::clicked, this,
           &InputPage::onFileSelected);
@@ -230,6 +278,10 @@ void InputPage::setupConnections() {
   updateButtonsState();
 }
 
+/**
+ * @brief Обновить состояние строки статуса.
+ * @param errorCount Количество ошибок (-1 для состояния редактирования).
+ */
 void InputPage::updateStatusBar(int errorCount) {
   if (!statsLabel || !statusInfo)
     return;
@@ -256,6 +308,9 @@ void InputPage::updateStatusBar(int errorCount) {
   }
 }
 
+/**
+ * @brief Обновить состояние кнопок в зависимости от наличия текста.
+ */
 void InputPage::updateButtonsState() {
   if (!btnCheck || !btnFix || !btnRevert)
     return;
@@ -279,21 +334,34 @@ void InputPage::updateButtonsState() {
   btnClear->setEnabled(hasLetters);
 
   // Кнопка "Отменить изменения" управляется своим сигналом
-  // (не меняем её состояние здесь)
 }
 
+/**
+ * @brief Обработчик изменения возможности отмены изменений.
+ * @param canRevert true если доступна отмена изменений.
+ */
 void InputPage::onCanRevertChanged(bool canRevert) {
   if (btnRevert) {
     btnRevert->setEnabled(canRevert);
   }
 }
 
+/**
+ * @brief Обработчик завершения проверки орфографии.
+ * @param errorCount Количество найденных ошибок.
+ */
 void InputPage::onSpellCheckCompleted(int errorCount) {
   updateStatusBar(errorCount);
 }
 
+/**
+ * @brief Обработчик изменения текста в редакторе.
+ */
 void InputPage::onTextChanged() { updateStatusBar(-1); }
 
+/**
+ * @brief Обработчик выбора файла через диалог.
+ */
 void InputPage::onFileSelected() {
   QString path =
       QFileDialog::getOpenFileName(this, "Выберите файл", QDir::homePath(),
@@ -305,6 +373,9 @@ void InputPage::onFileSelected() {
   }
 }
 
+/**
+ * @brief Обработчик загрузки текста из файла.
+ */
 void InputPage::onLoadFile() {
   QString path = filePathEdit->text();
   if (path.isEmpty()) {
@@ -327,6 +398,9 @@ void InputPage::onLoadFile() {
   radioKeyboard->setChecked(true);
 }
 
+/**
+ * @brief Обработчик переключения источника ввода.
+ */
 void InputPage::onSourceToggled() {
   if (radioKeyboard->isChecked()) {
     stack->setCurrentIndex(0);
@@ -335,6 +409,9 @@ void InputPage::onSourceToggled() {
   }
 }
 
+/**
+ * @brief Настроить кнопку вызова инструкции.
+ */
 void InputPage::setupInstructionButton() {
   btnInstruction = new QPushButton("?", this);
   btnInstruction->setObjectName("instructionButton");
@@ -346,6 +423,9 @@ void InputPage::setupInstructionButton() {
   btnInstruction->setEnabled(false);
 }
 
+/**
+ * @brief Показать диалоговое окно с инструкцией.
+ */
 void InputPage::showInstruction() {
   QDialog *dialog = new QDialog(this);
   dialog->setWindowTitle("Инструкция по использованию");
@@ -385,6 +465,10 @@ void InputPage::showInstruction() {
   delete dialog;
 }
 
+/**
+ * @brief Обновить цветовую схему страницы.
+ * @param colors Новая цветовая схема.
+ */
 void InputPage::updateThemeColors(const ThemeColors &colors) {
   currentColors_ = colors;
   // Цвета обновляются глобально через MainWindow::applyTheme
