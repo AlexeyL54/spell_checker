@@ -126,7 +126,7 @@ signals:
   void loadError(const QString &error);
 
 private:
-  std::atomic<bool> isLoaded_{false}; ///< Флаг загрузки словаря (атомарный)
+  std::atomic<bool> isLoaded_{false}; ///< Флаг загрузки словаря
   QVector<QHash<size_t, QString>>
       vocab_hash_table;         ///< Хэш-таблица строк словаря
   QVector<QString> vocab_words; ///< Список всех слов словаря
@@ -254,9 +254,6 @@ private:
    */
   void addBoundaryTrigrams(const QVector<uint32_t> &charCodes,
                            QVector<uint64_t> &trigrams);
-
-  // ==================== Вспомогательные методы для checkWordSpelling
-  // ====================
 
   /**
    * @brief Вычисляет оценки кандидатов на основе совпадений триграмм
